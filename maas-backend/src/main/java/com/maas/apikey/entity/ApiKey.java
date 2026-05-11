@@ -1,6 +1,8 @@
 package com.maas.apikey.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -22,6 +24,7 @@ public class ApiKey {
     private KeyType keyType = KeyType.application;
 
     @Column(name = "policy_json", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
     private String policyJson = "{}";
 
     @Column(name = "created_by", length = 128)

@@ -32,6 +32,14 @@ public class UsageService {
         return usageRecordRepository.totalCostByApiKeyIdSince(apiKeyId, Instant.now().truncatedTo(ChronoUnit.DAYS));
     }
 
+    public long getTotalRequestCountToday() {
+        return usageRecordRepository.countAllSince(Instant.now().truncatedTo(ChronoUnit.DAYS));
+    }
+
+    public BigDecimal getTotalCostToday() {
+        return usageRecordRepository.totalCostAllSince(Instant.now().truncatedTo(ChronoUnit.DAYS));
+    }
+
     public long getTotalTokensToday() {
         return usageRecordRepository.totalTokensSince(Instant.now().truncatedTo(ChronoUnit.DAYS));
     }

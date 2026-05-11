@@ -1,6 +1,8 @@
 package com.maas.provider.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -19,6 +21,7 @@ public class Provider {
     private ProviderType type;
 
     @Column(name = "config_json", columnDefinition = "jsonb", nullable = false)
+    @JdbcTypeCode(SqlTypes.JSON)
     private String configJson;
 
     @Enumerated(EnumType.STRING)

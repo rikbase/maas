@@ -13,6 +13,7 @@ export interface ApiKey {
   name: string
   keyType: 'root' | 'team' | 'application'
   keyPrefix: string
+  rawKey?: string
   status: string
   createdAt: string
   expiresAt: string | null

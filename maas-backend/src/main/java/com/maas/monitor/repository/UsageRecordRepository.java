@@ -19,4 +19,10 @@ public interface UsageRecordRepository extends JpaRepository<UsageRecord, UUID> 
 
     @Query("SELECT COALESCE(SUM(u.promptTokens + u.completionTokens), 0) FROM UsageRecord u WHERE u.createdAt >= :since")
     long totalTokensSince(@Param("since") Instant since);
+
+    @Query("SELECT COUNT(u) FROM UsageRecord u WHERE u.createdAt >= :since")
+    long countAllSince(@Param("since") Instant since);
+
+    @Query("SELECT COALESCE(SUM(u.cost), 0) FROM UsageRecord u WHERE u.createdAt >= :since")
+    BigDecimal totalCostAllSince(@Param("since") Instant since);
 }

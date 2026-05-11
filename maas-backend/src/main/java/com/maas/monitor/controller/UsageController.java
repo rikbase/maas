@@ -1,6 +1,5 @@
 package com.maas.monitor.controller;
 
-import com.maas.apikey.dto.KeyVO;
 import com.maas.common.dto.ApiResponse;
 import com.maas.monitor.service.UsageService;
 import org.springframework.web.bind.annotation.*;
@@ -17,10 +16,12 @@ public class UsageController {
     }
 
     @GetMapping("/stats")
-    public ApiResponse<UsageStats> stats(@RequestAttribute KeyVO apiKey) {
-        long count = usageService.getRequestCountToday(apiKey.id());
-        BigDecimal cost = usageService.getTotalCostToday(apiKey.id());
-        return ApiResponse.success(new UsageStats(count, cost));
+    public ApiResponse<UsageStats> stats() {
+        UsageStats stats = new UsageStats(
+            usageService.getTotalRequestCountToday(),
+            usageService.getTotalCostToday()
+        );
+        return ApiResponse.success(stats);
     }
 
     record UsageStats(long requestCount, BigDecimal totalCost) {}
