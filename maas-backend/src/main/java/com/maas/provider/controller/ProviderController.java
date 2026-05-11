@@ -8,6 +8,7 @@ import com.maas.provider.entity.ProviderStatus;
 import com.maas.provider.service.ProviderService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -33,23 +34,27 @@ public class ProviderController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('admin')")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<ProviderVO> create(@Valid @RequestBody ProviderCreateRequest request) {
         return ApiResponse.success(providerService.create(request));
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('admin')")
     public ApiResponse<ProviderVO> update(@PathVariable UUID id, @Valid @RequestBody ProviderUpdateRequest request) {
         return ApiResponse.success(providerService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('admin')")
     public ApiResponse<Void> delete(@PathVariable UUID id) {
         providerService.delete(id);
         return ApiResponse.success(null);
     }
 
     @PutMapping("/{id}/status")
+    @PreAuthorize("hasRole('admin')")
     public ApiResponse<Void> setStatus(@PathVariable UUID id, @RequestParam ProviderStatus status) {
         providerService.setStatus(id, status);
         return ApiResponse.success(null);

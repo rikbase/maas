@@ -2,7 +2,7 @@
   <div>
     <div class="header">
       <h1>{{ $t('key.title') }}</h1>
-      <router-link to="/keys/new" class="btn-primary">{{ $t('key.create') }}</router-link>
+      <router-link v-if="auth.isAdmin" to="/keys/new" class="btn-primary">{{ $t('key.create') }}</router-link>
     </div>
 
     <div v-if="loading" class="loading">{{ $t('key.loading') }}</div>
@@ -11,7 +11,7 @@
       <p class="hint">{{ $t('key.emptyHint') }}</p>
     </div>
     <table v-else class="table">
-      <thead><tr><th>{{ $t('key.name') }}</th><th>{{ $t('key.type') }}</th><th>{{ $t('key.keySuffix') }}</th><th>{{ $t('key.status') }}</th><th>{{ $t('key.expires') }}</th><th>{{ $t('key.actions') }}</th></tr></thead>
+      <thead><tr><th>{{ $t('key.name') }}</th><th>{{ $t('key.type') }}</th><th>{{ $t('key.keySuffix') }}</th><th>{{ $t('key.status') }}</th><th>{{ $t('key.expires') }}</th><th v-if="auth.isAdmin">{{ $t('key.actions') }}</th></tr></thead>
       <tbody>
         <tr v-for="k in keys" :key="k.id">
           <td>{{ k.name }}</td>
@@ -19,7 +19,7 @@
           <td><code>...{{ k.keyPrefix }}</code></td>
           <td><span :class="'badge ' + k.status">{{ $t('key.statuses.' + k.status) }}</span></td>
           <td>{{ k.expiresAt ? new Date(k.expiresAt).toLocaleDateString() : $t('key.never') }}</td>
-          <td>
+          <td v-if="auth.isAdmin">
             <button v-if="k.status === 'active'" @click="revokeKey(k.id)" class="btn-sm btn-warning">{{ $t('key.revoke') }}</button>
             <button @click="deleteKey(k.id)" class="btn-sm btn-danger">{{ $t('key.delete') }}</button>
           </td>
@@ -35,9 +35,11 @@ import { keyApi } from '../../api/keys'
 import type { ApiKey } from '../../types'
 import { useToast } from '../../composables/useToast'
 import { useI18n } from 'vue-i18n'
+import { useAuthStore } from '../../stores/auth'
 
 const { t } = useI18n()
 const { show } = useToast()
+const auth = useAuthStore()
 
 const loading = ref(true)
 const keys = ref<ApiKey[]>([])

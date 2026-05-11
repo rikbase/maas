@@ -6,6 +6,7 @@ import com.maas.apikey.service.ApiKeyService;
 import com.maas.common.dto.ApiResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -31,18 +32,21 @@ public class ApiKeyController {
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('admin')")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<KeyVO> create(@Valid @RequestBody CreateKeyRequest request) {
         return ApiResponse.success(apiKeyService.create(request));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('admin')")
     public ApiResponse<Void> delete(@PathVariable UUID id) {
         apiKeyService.delete(id);
         return ApiResponse.success(null);
     }
 
     @PostMapping("/{id}/revoke")
+    @PreAuthorize("hasRole('admin')")
     public ApiResponse<Void> revoke(@PathVariable UUID id) {
         apiKeyService.revoke(id);
         return ApiResponse.success(null);

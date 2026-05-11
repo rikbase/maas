@@ -102,6 +102,13 @@ export default {
       active: 'Active',
     },
   },
+  auth: {
+    login: 'Login',
+    logout: 'Logout',
+    username: 'Username',
+    password: 'Password',
+    loginError: 'Invalid username or password',
+  },
   common: {
     loading: 'Loading...',
     empty: 'No data',

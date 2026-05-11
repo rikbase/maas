@@ -2,7 +2,7 @@
   <div>
     <div class="header">
       <h1>{{ $t('provider.title') }}</h1>
-      <router-link to="/providers/new" class="btn-primary">{{ $t('provider.add') }}</router-link>
+      <router-link v-if="auth.isAdmin" to="/providers/new" class="btn-primary">{{ $t('provider.add') }}</router-link>
     </div>
 
     <div v-if="loading" class="loading">{{ $t('provider.loading') }}</div>
@@ -11,14 +11,14 @@
       <p class="hint">{{ $t('provider.emptyHint') }}</p>
     </div>
     <table v-else class="table">
-      <thead><tr><th>{{ $t('provider.name') }}</th><th>{{ $t('provider.type') }}</th><th>{{ $t('provider.status') }}</th><th>{{ $t('provider.health') }}</th><th>{{ $t('provider.actions') }}</th></tr></thead>
+      <thead><tr><th>{{ $t('provider.name') }}</th><th>{{ $t('provider.type') }}</th><th>{{ $t('provider.status') }}</th><th>{{ $t('provider.health') }}</th><th v-if="auth.isAdmin">{{ $t('provider.actions') }}</th></tr></thead>
       <tbody>
         <tr v-for="p in providers" :key="p.id">
           <td>{{ p.name }}</td>
           <td>{{ $t('provider.types.' + p.type) }}</td>
           <td><span :class="'badge ' + p.status">{{ $t('provider.statuses.' + p.status) }}</span></td>
           <td><span :class="'badge ' + p.healthStatus">{{ $t('provider.healthStatuses.' + (p.healthStatus || 'unknown')) }}</span></td>
-          <td>
+          <td v-if="auth.isAdmin">
             <router-link :to="`/providers/${p.id}/edit`" class="btn-sm">{{ $t('provider.edit') }}</router-link>
             <button @click="deleteProvider(p.id)" class="btn-sm btn-danger">{{ $t('provider.delete') }}</button>
           </td>
@@ -34,9 +34,11 @@ import { providerApi } from '../../api/providers'
 import type { Provider } from '../../types'
 import { useToast } from '../../composables/useToast'
 import { useI18n } from 'vue-i18n'
+import { useAuthStore } from '../../stores/auth'
 
 const { t } = useI18n()
 const { show } = useToast()
+const auth = useAuthStore()
 
 const loading = ref(true)
 const providers = ref<Provider[]>([])

@@ -30,3 +30,10 @@ export interface ApiResponse<T> {
   message: string
   data: T
 }
+
+export interface User {
+  id: string
+  username: string
+  displayName: string | null
+  role: 'admin' | 'viewer'
+}

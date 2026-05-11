@@ -102,6 +102,13 @@ export default {
       active: '活跃',
     },
   },
+  auth: {
+    login: '登录',
+    logout: '退出登录',
+    username: '用户名',
+    password: '密码',
+    loginError: '用户名或密码错误',
+  },
   common: {
     loading: '加载中...',
     empty: '暂无数据',
