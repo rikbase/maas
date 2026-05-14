@@ -7,6 +7,14 @@
         <router-link to="/providers" class="nav-item">{{ $t('nav.providers') }}</router-link>
         <router-link to="/models" class="nav-item">{{ $t('nav.models') }}</router-link>
         <router-link to="/keys" class="nav-item">{{ $t('nav.apiKeys') }}</router-link>
+        <router-link to="/security/rules" class="nav-item">{{ $t('security.nav') }}</router-link>
+        <router-link to="/security/events" class="nav-item">{{ $t('security.eventsTitle') }}</router-link>
+        <router-link to="/mcp/servers" class="nav-item">{{ $t('nav.mcp') }}</router-link>
+        <router-link to="/dify" class="nav-item">{{ $t('nav.dify') }}</router-link>
+        <router-link to="/skills" class="nav-item">{{ $t('nav.skills') }}</router-link>
+        <router-link to="/tools" class="nav-item">{{ $t('nav.tools') }}</router-link>
+        <router-link to="/workflows" class="nav-item">{{ $t('nav.workflows') }}</router-link>
+        <router-link to="/executions" class="nav-item">{{ $t('nav.executions') }}</router-link>
       </nav>
       <div class="sidebar-footer">
         <div class="user-info" v-if="auth.user">

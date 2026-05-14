@@ -53,6 +53,10 @@ public class JwtUtil {
         return parseClaims(token).get("username", String.class);
     }
 
+    public long getExpirationMs() {
+        return expirationMs;
+    }
+
     public String extractRole(String token) {
         return parseClaims(token).get("role", String.class);
     }

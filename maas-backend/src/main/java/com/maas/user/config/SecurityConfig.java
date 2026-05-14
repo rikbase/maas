@@ -50,6 +50,11 @@ public class SecurityConfig {
             )
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/login").permitAll()
+                .requestMatchers("/api/dify/*/sso").permitAll()
+                .requestMatchers("/api/oauth2/authorize").authenticated()
+                .requestMatchers("/api/oauth2/callback").permitAll()
+                .requestMatchers("/api/oauth2/token").permitAll()
+                .requestMatchers("/api/oauth2/userinfo").permitAll()
                 .requestMatchers("/api/**").authenticated()
                 .requestMatchers("/v1/**").permitAll()
                 .anyRequest().permitAll()
