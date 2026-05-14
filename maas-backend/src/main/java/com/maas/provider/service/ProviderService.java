@@ -16,9 +16,11 @@ import java.util.UUID;
 @Service
 public class ProviderService {
     private final ProviderRepository providerRepository;
+    private final ProviderHealthChecker healthChecker;
 
-    public ProviderService(ProviderRepository providerRepository) {
+    public ProviderService(ProviderRepository providerRepository, ProviderHealthChecker healthChecker) {
         this.providerRepository = providerRepository;
+        this.healthChecker = healthChecker;
     }
 
     public List<ProviderVO> listAll() {
@@ -71,5 +73,22 @@ public class ProviderService {
 
     public List<Provider> getEnabledProviders() {
         return providerRepository.findByStatus(ProviderStatus.enabled);
+    }
+
+    public ProviderVO checkHealth(UUID id) {
+        Provider provider = providerRepository.findById(id)
+            .orElseThrow(() -> new BusinessException(404, "Provider not found"));
+        healthChecker.checkProvider(provider);
+        return ProviderVO.from(providerRepository.findById(id)
+            .orElseThrow(() -> new BusinessException(404, "Provider not found")));
+    }
+
+    @Transactional
+    public ProviderVO setHealthStatus(UUID id, String healthStatus) {
+        Provider provider = providerRepository.findById(id)
+            .orElseThrow(() -> new BusinessException(404, "Provider not found"));
+        provider.setHealthStatus(healthStatus);
+        provider = providerRepository.save(provider);
+        return ProviderVO.from(provider);
     }
 }

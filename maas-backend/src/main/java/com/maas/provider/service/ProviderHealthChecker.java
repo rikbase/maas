@@ -28,17 +28,21 @@ public class ProviderHealthChecker {
     public void checkAll() {
         List<Provider> providers = providerRepository.findByStatus(ProviderStatus.enabled);
         for (Provider provider : providers) {
-            ProviderAdapter adapter = findAdapter(provider);
-            if (adapter == null) continue;
-
-            boolean healthy = adapter.checkHealth(provider);
-            provider.setHealthStatus(healthy ? "healthy" : "unhealthy");
-            if (healthy) {
-                List<String> models = adapter.fetchModels(provider);
-                syncModels(provider, models);
-            }
-            providerRepository.save(provider);
+            checkProvider(provider);
         }
+    }
+
+    public void checkProvider(Provider provider) {
+        ProviderAdapter adapter = findAdapter(provider);
+        if (adapter == null) return;
+
+        boolean healthy = adapter.checkHealth(provider);
+        provider.setHealthStatus(healthy ? "healthy" : "unhealthy");
+        if (healthy) {
+            List<String> models = adapter.fetchModels(provider);
+            syncModels(provider, models);
+        }
+        providerRepository.save(provider);
     }
 
     private void syncModels(Provider provider, List<String> models) {

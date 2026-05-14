@@ -1,55 +1,57 @@
 <template>
   <div>
-    <div class="header">
-      <h1>{{ $t('registry.tools.title') }}</h1>
-      <router-link v-if="auth.isAdmin" to="/tools/new" class="btn btn-add">{{ $t('registry.tools.add') }}</router-link>
-    </div>
+    <BasePageHeader :title="$t('registry.tools.title')">
+      <template #actions>
+        <BaseButton variant="primary" @click="router.push('/tools/new')">
+          {{ $t('registry.tools.add') }}
+        </BaseButton>
+      </template>
+    </BasePageHeader>
 
-    <div class="filters">
-      <input v-model="searchQ" :placeholder="$t('registry.tools.searchPlaceholder')" class="input search-input" @input="onSearch" />
-      <select v-model="filterSource" class="input filter-select" @change="onSearch">
+    <div class="filter-bar">
+      <input v-model="searchQ" :placeholder="$t('registry.tools.searchPlaceholder')" class="form-input filter-search" @input="onSearch" />
+      <select v-model="filterSource" class="filter-select" @change="onSearch">
         <option value="">{{ $t('registry.tools.allSources') }}</option>
         <option value="built_in">built_in</option>
         <option value="mcp">mcp</option>
         <option value="api">api</option>
       </select>
-      <select v-model="filterEnabled" class="input filter-select" @change="onSearch">
+      <select v-model="filterEnabled" class="filter-select" @change="onSearch">
         <option value="">{{ $t('registry.tools.allStatuses') }}</option>
         <option value="true">{{ $t('registry.tools.enabled') }}</option>
         <option value="false">{{ $t('registry.tools.disabled') }}</option>
       </select>
     </div>
 
-    <div v-if="loading" class="loading">{{ $t('common.loading') }}</div>
-    <div v-else-if="filtered.length === 0" class="empty">
-      <p>{{ $t('registry.tools.empty') }}</p>
-    </div>
-    <table v-else class="table">
-      <thead><tr>
-        <th>{{ $t('registry.tools.name') }}</th>
-        <th>{{ $t('provider.description') }}</th>
-        <th>{{ $t('registry.tools.source') }}</th>
-        <th>{{ $t('registry.tools.status') }}</th>
-        <th v-if="auth.isAdmin">{{ $t('provider.actions') }}</th>
-      </tr></thead>
+    <BaseSpinner v-if="loading" class="spinner" />
+
+    <BaseEmpty v-else-if="filtered.length === 0" :text="$t('registry.tools.empty')" />
+
+    <table v-else class="data-table">
+      <thead>
+        <tr>
+          <th>{{ $t('registry.tools.name') }}</th>
+          <th>{{ $t('provider.description') }}</th>
+          <th>{{ $t('registry.tools.source') }}</th>
+          <th>{{ $t('registry.tools.status') }}</th>
+          <th>{{ $t('provider.actions') }}</th>
+        </tr>
+      </thead>
       <tbody>
         <tr v-for="t in filtered" :key="t.id">
           <td>
-            <router-link :to="`/tools/${t.id}`" class="link">{{ t.name }}</router-link>
+            <router-link :to="`/tools/${t.id}`" class="data-table-link">{{ t.name }}</router-link>
           </td>
-          <td><span class="desc">{{ t.description || '—' }}</span></td>
-          <td><span class="badge badge-source">{{ t.source }}</span></td>
+          <td><span class="data-table-desc">{{ t.description || '—' }}</span></td>
+          <td><BaseBadge variant="info">{{ t.source }}</BaseBadge></td>
           <td>
-            <button v-if="auth.isAdmin" @click="toggleTool(t)" class="badge-btn" :class="t.enabled ? 'enabled' : 'disabled'">
+            <BaseButton size="sm" variant="ghost" @click="toggleTool(t)">
               {{ t.enabled ? $t('registry.tools.enabled') : $t('registry.tools.disabled') }}
-            </button>
-            <span v-else class="badge" :class="t.enabled ? 'enabled' : 'disabled'">
-              {{ t.enabled ? 'Enabled' : 'Disabled' }}
-            </span>
+            </BaseButton>
           </td>
-          <td v-if="auth.isAdmin">
-            <router-link :to="`/tools/${t.id}/edit`" class="btn-sm">{{ $t('provider.edit') }}</router-link>
-            <button @click="deleteTool(t.id)" class="btn-sm btn-danger">{{ $t('provider.delete') }}</button>
+          <td>
+            <BaseButton size="sm" variant="ghost" @click="router.push(`/tools/${t.id}/edit`)">{{ $t('provider.edit') }}</BaseButton>
+            <BaseButton size="sm" variant="danger" @click="deleteTool(t.id)">{{ $t('provider.delete') }}</BaseButton>
           </td>
         </tr>
       </tbody>
@@ -58,16 +60,23 @@
 </template>
 
 <script setup lang="ts">
+import BasePageHeader from '../../components/ui/BasePageHeader.vue'
+import BaseButton from '../../components/ui/BaseButton.vue'
+import BaseBadge from '../../components/ui/BaseBadge.vue'
+import BaseSpinner from '../../components/ui/BaseSpinner.vue'
+import BaseEmpty from '../../components/ui/BaseEmpty.vue'
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { toolApi } from '../../api/registry'
 import type { ToolDef } from '../../api/registry'
 import { useToast } from '../../composables/useToast'
 import { useI18n } from 'vue-i18n'
-import { useAuthStore } from '../../stores/auth'
+import { useConfirm } from '../../composables/useConfirm'
 
 const { t } = useI18n()
 const { show } = useToast()
-const auth = useAuthStore()
+const router = useRouter()
+const { confirm: confirmDialog } = useConfirm()
 
 const loading = ref(true)
 const allTools = ref<ToolDef[]>([])
@@ -78,9 +87,9 @@ const filterEnabled = ref('')
 const filtered = computed(() => {
   let list = allTools.value
   const q = searchQ.value.toLowerCase()
-  if (q) list = list.filter(t => t.name.toLowerCase().includes(q) || (t.description && t.description.toLowerCase().includes(q)))
-  if (filterSource.value) list = list.filter(t => t.source === filterSource.value)
-  if (filterEnabled.value !== '') list = list.filter(t => String(t.enabled) === filterEnabled.value)
+  if (q) list = list.filter(tt => tt.name.toLowerCase().includes(q) || (tt.description && tt.description.toLowerCase().includes(q)))
+  if (filterSource.value) list = list.filter(tt => tt.source === filterSource.value)
+  if (filterEnabled.value !== '') list = list.filter(tt => String(tt.enabled) === filterEnabled.value)
   return list
 })
 
@@ -104,7 +113,7 @@ function onSearch() {
   if (searchTimer) clearTimeout(searchTimer)
   searchTimer = setTimeout(async () => {
     try {
-      const params: any = {}
+      const params: Record<string, any> = {}
       if (searchQ.value) params.q = searchQ.value
       if (filterSource.value) params.source = filterSource.value
       if (filterEnabled.value !== '') params.enabled = filterEnabled.value === 'true'
@@ -128,10 +137,10 @@ async function toggleTool(item: ToolDef) {
 }
 
 async function deleteTool(id: string) {
-  if (!confirm(t('registry.tools.deleteConfirm'))) return
+  if (!(await confirmDialog(t('registry.tools.deleteConfirm')))) return
   try {
     await toolApi.delete(id)
-    allTools.value = allTools.value.filter(t => t.id !== id)
+    allTools.value = allTools.value.filter(tt => tt.id !== id)
     show(t('registry.tools.deleted'))
   } catch {
     show(t('common.error'), 'error')
@@ -140,24 +149,90 @@ async function deleteTool(id: string) {
 </script>
 
 <style scoped>
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.filters { display: flex; gap: 8px; margin-bottom: 16px; }
-.search-input { flex: 1; max-width: 300px; }
-.filter-select { width: 140px; }
-.input { padding: 8px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; }
-.loading { color: #666; padding: 20px; text-align: center; }
-.empty { text-align: center; padding: 40px; color: #666; }
-.table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
-.table th, .table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 13px; }
-.desc { color: #666; font-size: 12px; }
-.link { color: #1976d2; text-decoration: none; font-weight: 600; }
-.link:hover { text-decoration: underline; }
-.badge { padding: 2px 8px; border-radius: 4px; font-size: 12px; }
-.badge-source { background: #e8eaf6; color: #283593; }
-.enabled { background: #e8f5e9; color: #2e7d32; }
-.disabled { background: #eee; color: #666; }
-.badge-btn { padding: 2px 8px; border-radius: 4px; font-size: 12px; border: none; cursor: pointer; }
-.btn-add { padding: 8px 16px; background: #1976d2; color: white; border-radius: 4px; text-decoration: none; font-size: 13px; }
-.btn-sm { padding: 4px 8px; background: #e3f2fd; color: #1976d2; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; text-decoration: none; display: inline-block; margin-right: 4px; }
-.btn-danger { background: #ffebee; color: #c62828; }
+.spinner {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-8);
+}
+.filter-bar {
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+}
+.filter-search {
+  flex: 1;
+  max-width: 300px;
+}
+.filter-select {
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  font-size: 0.857rem;
+  color: var(--color-foreground);
+  background: var(--color-bg-card);
+  width: 140px;
+}
+.filter-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+.form-input {
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  font-size: 0.875rem;
+  color: var(--color-foreground);
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--color-bg-card);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.form-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.data-table th {
+  text-transform: uppercase;
+  font-size: 0.857rem;
+  color: var(--color-foreground-secondary);
+  font-weight: 600;
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+.data-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.875rem;
+  color: var(--color-foreground);
+}
+.data-table tbody tr:hover {
+  background: var(--color-bg-muted);
+}
+.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.data-table-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+.data-table-link:hover {
+  text-decoration: underline;
+}
+.data-table-desc {
+  font-size: 0.8rem;
+  color: var(--color-foreground-secondary);
+}
 </style>

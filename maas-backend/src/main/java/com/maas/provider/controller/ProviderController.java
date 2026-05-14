@@ -59,4 +59,16 @@ public class ProviderController {
         providerService.setStatus(id, status);
         return ApiResponse.success(null);
     }
+
+    @PostMapping("/{id}/health-check")
+    @PreAuthorize("hasRole('admin')")
+    public ApiResponse<ProviderVO> checkHealth(@PathVariable UUID id) {
+        return ApiResponse.success(providerService.checkHealth(id));
+    }
+
+    @PutMapping("/{id}/health-status")
+    @PreAuthorize("hasRole('admin')")
+    public ApiResponse<ProviderVO> setHealthStatus(@PathVariable UUID id, @RequestParam String healthStatus) {
+        return ApiResponse.success(providerService.setHealthStatus(id, healthStatus));
+    }
 }

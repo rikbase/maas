@@ -26,6 +26,8 @@ const router = createRouter({
         { path: 'keys', name: 'Keys', component: () => import('../views/keys/KeyList.vue') },
         { path: 'keys/new', name: 'KeyCreate', component: () => import('../views/keys/KeyForm.vue'), meta: { requiresAdmin: true } },
         { path: 'models', name: 'Models', component: () => import('../views/models/ModelList.vue') },
+        { path: 'models/new', name: 'ModelCreate', component: () => import('../views/models/ModelForm.vue'), meta: { requiresAdmin: true } },
+        { path: 'models/:id/edit', name: 'ModelEdit', component: () => import('../views/models/ModelForm.vue'), meta: { requiresAdmin: true } },
         {
           path: 'security/rules',
           name: 'SecurityRules',
@@ -141,6 +143,24 @@ const router = createRouter({
           name: 'WorkflowExecutions',
           component: () => import('../views/workflows/ExecutionList.vue'),
         },
+        {
+          path: 'users',
+          name: 'Users',
+          component: () => import('../views/users/UserList.vue'),
+          meta: { requiresAdmin: true },
+        },
+        {
+          path: 'users/new',
+          name: 'UserCreate',
+          component: () => import('../views/users/UserForm.vue'),
+          meta: { requiresAdmin: true },
+        },
+        {
+          path: 'users/:id/edit',
+          name: 'UserEdit',
+          component: () => import('../views/users/UserForm.vue'),
+          meta: { requiresAdmin: true },
+        },
         { path: 'dify', name: 'Dify', component: () => import('../views/dify/DifyConfig.vue') },
         {
           path: 'executions',
@@ -159,6 +179,17 @@ router.beforeEach((to) => {
   }
   if (to.name === 'Login' && token) {
     return { name: 'Dashboard' }
+  }
+  // Admin-only routes
+  if (to.meta.requiresAdmin && token) {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]))
+      if (payload.role !== 'admin') {
+        return { name: 'Dashboard' }
+      }
+    } catch {
+      return { name: 'Login' }
+    }
   }
 })
 

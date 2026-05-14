@@ -9,8 +9,8 @@ public record DifyConfigVO(
         UUID id,
         String name,
         String baseUrl,
-        String adminEmail,
         String status,
+        String adminEmail,
         Instant lastTestAt,
         Instant createdAt,
         Instant updatedAt
@@ -20,8 +20,8 @@ public record DifyConfigVO(
                 c.getId(),
                 c.getName(),
                 c.getBaseUrl(),
-                c.getAdminEmail(),
                 c.getStatus(),
+                c.getAdminEmail(),
                 c.getLastTestAt(),
                 c.getCreatedAt(),
                 c.getUpdatedAt()

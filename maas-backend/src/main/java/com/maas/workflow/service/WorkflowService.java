@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -224,5 +226,29 @@ public class WorkflowService {
 
     public Page<ExecutionVO> listAllExecutions(Pageable pageable, ExecutionStatus status, Instant start, Instant end) {
         return getExecutions(null, pageable, status, start, end);
+    }
+
+    public List<ExecutionTrendVO> getExecutionTrends(String range) {
+        Instant since = Instant.now();
+        if ("today".equals(range)) {
+            since = since.truncatedTo(ChronoUnit.DAYS);
+        } else if ("week".equals(range)) {
+            since = since.minus(7, ChronoUnit.DAYS);
+        } else if ("month".equals(range)) {
+            since = since.minus(30, ChronoUnit.DAYS);
+        } else {
+            since = since.minus(7, ChronoUnit.DAYS);
+        }
+
+        List<Object[]> raw = executionRepository.findExecutionTrendsRaw(since);
+        return raw.stream().map(row -> new ExecutionTrendVO(
+            ((java.sql.Date) row[0]).toLocalDate(),
+            ((Number) row[1]).longValue(),
+            ((Number) row[2]).longValue(),
+            ((Number) row[3]).longValue(),
+            ((Number) row[4]).longValue(),
+            ((Number) row[5]).longValue(),
+            ((Number) row[6]).longValue()
+        )).toList();
     }
 }

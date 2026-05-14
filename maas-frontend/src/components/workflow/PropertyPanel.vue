@@ -62,6 +62,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useConfirm } from '../../composables/useConfirm'
 
 export interface EditorNode {
   id: string
@@ -80,6 +81,7 @@ const emit = defineEmits<{
 
 const editLabel = ref('')
 const editData = ref<Record<string, any>>({})
+const { confirm: confirmDialog } = useConfirm()
 
 watch(() => props.node, (n) => {
   if (n) {
@@ -95,22 +97,22 @@ function emitUpdate() {
   emit('update', props.node.id, merged)
 }
 
-function deleteNode() {
-  if (props.node && confirm('Delete this step?')) {
+async function deleteNode() {
+  if (props.node && (await confirmDialog('Delete this step?'))) {
     emit('delete', props.node.id)
   }
 }
 </script>
 
 <style scoped>
-.panel { background: white; border-radius: 8px; padding: 12px; width: 240px; border: 1px solid #e0e0e0; font-size: 13px; }
-.panel-title { font-size: 13px; margin: 0 0 12px; color: #333; }
-.panel-empty { color: #999; text-align: center; padding: 20px; font-size: 12px; }
+.panel { background: var(--color-bg-card); border-radius: var(--radius-md); padding: 12px; width: 240px; border: 1px solid var(--color-border); font-size: 13px; }
+.panel-title { font-size: 13px; margin: 0 0 12px; color: var(--color-foreground); }
+.panel-empty { color: var(--color-foreground-secondary); text-align: center; padding: 20px; font-size: 12px; }
 .panel-form { display: flex; flex-direction: column; gap: 10px; }
 .form-group { display: flex; flex-direction: column; gap: 4px; }
-.form-group label { font-size: 11px; color: #666; font-weight: 500; }
-.form-input { padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; }
-.form-textarea { padding: 6px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; font-family: monospace; resize: vertical; }
-.btn-danger { padding: 6px 12px; background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; border-radius: 4px; cursor: pointer; font-size: 13px; margin-top: 8px; }
-.btn-danger:hover { background: #ffcdd2; }
+.form-group label { font-size: 11px; color: var(--color-foreground-secondary); font-weight: 500; }
+.form-input { padding: 6px 8px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-size: 13px; }
+.form-textarea { padding: 6px 8px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); font-size: 13px; font-family: var(--font-mono); resize: vertical; }
+.btn-danger { padding: 6px 12px; background: var(--color-bg-muted); color: var(--color-danger); border: 1px solid var(--color-border); border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; margin-top: 8px; }
+.btn-danger:hover { background: var(--color-bg-muted); }
 </style>

@@ -1,56 +1,74 @@
 <template>
   <div>
-    <div v-if="loading" class="loading">{{ $t('common.loading') }}</div>
+    <BaseSpinner v-if="loading" size="lg" />
     <template v-else-if="server">
-      <div class="header">
-        <h1>{{ server.name }}</h1>
-        <div>
-          <router-link v-if="auth.isAdmin" :to="`/mcp/servers/${server.id}/edit`" class="btn-primary">{{ $t('provider.edit') }}</router-link>
-        </div>
-      </div>
+      <BasePageHeader :title="server.name">
+        <template #actions>
+          <BaseButton variant="primary" size="sm" @click="$router.push(`/mcp/servers/${server.id}/edit`)">
+            {{ $t('provider.edit') }}
+          </BaseButton>
+        </template>
+      </BasePageHeader>
 
-      <div class="info-grid">
-        <div class="info-item">
-          <span class="label">{{ $t('mcp.servers.transport') }}</span>
-          <span class="value"><span class="badge badge-transport">{{ server.transport }}</span></span>
+      <BaseCard>
+        <template #header>{{ $t('mcp.servers.details') }}</template>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="label">{{ $t('mcp.servers.transport') }}</span>
+            <span class="value"><BaseBadge variant="info">{{ server.transport }}</BaseBadge></span>
+          </div>
+          <div class="info-item">
+            <span class="label">{{ $t('mcp.servers.status') }}</span>
+            <span class="value">
+              <BaseBadge :variant="statusVariant(server.status)">
+                {{ $t('mcp.servers.statuses.' + server.status) }}
+              </BaseBadge>
+            </span>
+          </div>
+          <div class="info-item" v-if="server.command">
+            <span class="label">{{ $t('mcp.servers.command') }}</span>
+            <span class="value mono">{{ server.command }}</span>
+          </div>
+          <div class="info-item" v-if="server.url">
+            <span class="label">{{ $t('mcp.servers.url') }}</span>
+            <span class="value mono">{{ server.url }}</span>
+          </div>
         </div>
-        <div class="info-item">
-          <span class="label">{{ $t('mcp.servers.status') }}</span>
-          <span class="value"><span :class="'badge ' + server.status">{{ $t('mcp.servers.statuses.' + server.status) }}</span></span>
-        </div>
-        <div class="info-item" v-if="server.command">
-          <span class="label">{{ $t('mcp.servers.command') }}</span>
-          <span class="value mono">{{ server.command }}</span>
-        </div>
-        <div class="info-item" v-if="server.url">
-          <span class="label">{{ $t('mcp.servers.url') }}</span>
-          <span class="value mono">{{ server.url }}</span>
-        </div>
-      </div>
+      </BaseCard>
 
       <!-- Tools -->
-      <div class="section">
-        <h2>{{ $t('mcp.servers.tools') }} ({{ tools.length }})</h2>
-        <div v-if="tools.length === 0" class="empty">{{ $t('mcp.servers.noTools') }}</div>
-        <table v-else class="table">
-          <thead><tr>
-            <th>{{ $t('mcp.servers.toolName') }}</th>
-            <th>{{ $t('mcp.servers.description') }}</th>
-            <th>{{ $t('mcp.servers.autoRegister') }}</th>
-            <th v-if="auth.isAdmin"></th>
-          </tr></thead>
+      <BaseCard style="margin-top: var(--space-4);">
+        <template #header>{{ $t('mcp.servers.tools') }} ({{ tools.length }})</template>
+        <template v-if="tools.length === 0">
+          <BaseEmpty :text="$t('mcp.servers.noTools')" />
+        </template>
+        <table v-else class="design-table">
+          <thead>
+            <tr>
+              <th>{{ $t('mcp.servers.toolName') }}</th>
+              <th>{{ $t('mcp.servers.description') }}</th>
+              <th>{{ $t('mcp.servers.autoRegister') }}</th>
+              <th></th>
+            </tr>
+          </thead>
           <tbody>
             <tr v-for="t in tools" :key="t.id">
               <td><strong>{{ t.name }}</strong></td>
-              <td class="desc">{{ t.description || '-' }}</td>
-              <td><span class="badge" :class="t.autoRegister ? 'enabled' : 'disabled'">{{ t.autoRegister ? 'Yes' : 'No' }}</span></td>
-              <td v-if="auth.isAdmin">
-                <button @click="deleteTool(t.id)" class="btn-sm btn-danger">{{ $t('provider.delete') }}</button>
+              <td class="desc-cell">{{ t.description || '-' }}</td>
+              <td>
+                <BaseBadge :variant="t.autoRegister ? 'success' : 'neutral'">
+                  {{ t.autoRegister ? 'Yes' : 'No' }}
+                </BaseBadge>
+              </td>
+              <td>
+                <BaseButton variant="danger" size="sm" @click="deleteTool(t.id)">
+                  {{ $t('provider.delete') }}
+                </BaseButton>
               </td>
             </tr>
           </tbody>
         </table>
-      </div>
+      </BaseCard>
     </template>
   </div>
 </template>
@@ -62,13 +80,19 @@ import { mcpServerApi } from '../../api/mcp'
 import type { McpServer, McpTool } from '../../api/mcp'
 import { useToast } from '../../composables/useToast'
 import { useI18n } from 'vue-i18n'
-import { useAuthStore } from '../../stores/auth'
+import { useConfirm } from '../../composables/useConfirm'
+import BasePageHeader from '../../components/ui/BasePageHeader.vue'
+import BaseButton from '../../components/ui/BaseButton.vue'
+import BaseBadge from '../../components/ui/BaseBadge.vue'
+import BaseSpinner from '../../components/ui/BaseSpinner.vue'
+import BaseCard from '../../components/ui/BaseCard.vue'
+import BaseEmpty from '../../components/ui/BaseEmpty.vue'
 
 const { t } = useI18n()
 const { show } = useToast()
 const route = useRoute()
 const router = useRouter()
-const auth = useAuthStore()
+const { confirm: confirmDialog } = useConfirm()
 
 const loading = ref(true)
 const server = ref<McpServer | null>(null)
@@ -90,8 +114,13 @@ onMounted(async () => {
   }
 })
 
+function statusVariant(status: string): 'success' | 'danger' | 'warning' | 'info' | 'neutral' {
+  const map: Record<string, 'success' | 'danger' | 'warning' | 'info' | 'neutral'> = { connected: 'success', online: 'success', error: 'danger', offline: 'neutral' }
+  return map[status] || 'neutral'
+}
+
 async function deleteTool(toolId: string) {
-  if (!confirm('Delete this tool?')) return
+  if (!(await confirmDialog('Delete this tool?'))) return
   try {
     await mcpServerApi.deleteTool(route.params.id as string, toolId)
     tools.value = tools.value.filter(t => t.id !== toolId)
@@ -103,27 +132,58 @@ async function deleteTool(toolId: string) {
 </script>
 
 <style scoped>
-.loading { color: #666; padding: 20px; text-align: center; }
-.empty { text-align: center; padding: 20px; color: #666; font-size: 13px; }
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 24px; }
-.info-item { background: white; padding: 12px 16px; border-radius: 8px; }
-.label { display: block; font-size: 11px; color: #888; text-transform: uppercase; margin-bottom: 4px; }
-.value { font-size: 14px; }
-.mono { font-family: monospace; font-size: 13px; word-break: break-all; }
-.section { margin-top: 16px; }
-.section h2 { font-size: 16px; margin-bottom: 12px; }
-.table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
-.table th, .table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 13px; }
-.desc { color: #666; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.badge { padding: 2px 8px; border-radius: 4px; font-size: 12px; }
-.badge.online { background: #e8f5e9; color: #2e7d32; }
-.badge.offline { background: #eee; color: #666; }
-.badge.error { background: #ffebee; color: #c62828; }
-.badge-transport { background: #e8eaf6; color: #283593; }
-.badge.enabled { background: #e8f5e9; color: #2e7d32; }
-.badge.disabled { background: #eee; color: #666; }
-.btn-primary { padding: 8px 16px; background: #1976d2; color: white; text-decoration: none; border-radius: 4px; }
-.btn-sm { padding: 4px 8px; background: #e3f2fd; color: #1976d2; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; }
-.btn-danger { background: #ffebee; color: #c62828; }
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.label {
+  font-size: 0.786rem;
+  color: var(--color-foreground-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+.value {
+  font-size: 0.929rem;
+  color: var(--color-foreground);
+}
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.857rem;
+  word-break: break-all;
+}
+.design-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.design-table th {
+  font-size: 0.857rem;
+  font-weight: 600;
+  color: var(--color-foreground-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid var(--color-border);
+  padding: 10px 12px;
+  text-align: left;
+}
+.design-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+.design-table tr:hover td {
+  background: var(--color-bg-muted);
+}
+.desc-cell {
+  color: var(--color-foreground-secondary);
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 </style>

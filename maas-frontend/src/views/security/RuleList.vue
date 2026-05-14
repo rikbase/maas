@@ -1,16 +1,20 @@
 <template>
   <div>
-    <div class="header">
-      <h1>{{ $t('security.rules.title') }}</h1>
-      <router-link v-if="auth.isAdmin" to="/security/rules/new" class="btn-primary">{{ $t('security.rules.add') }}</router-link>
-    </div>
+    <BasePageHeader :title="$t('security.rules.title')">
+      <template #actions>
+        <BaseButton variant="primary" size="sm" @click="$router.push('/security/rules/new')">
+          {{ $t('security.rules.add') }}
+        </BaseButton>
+      </template>
+    </BasePageHeader>
 
-    <div v-if="loading" class="loading">{{ $t('common.loading') }}</div>
-    <div v-else-if="rules.length === 0" class="empty">
-      <p>{{ $t('security.rules.empty') }}</p>
-      <p class="hint">{{ $t('security.rules.emptyHint') }}</p>
-    </div>
-    <table v-else class="table">
+    <BaseSpinner v-if="loading" size="lg" />
+    <BaseEmpty
+      v-else-if="rules.length === 0"
+      :text="$t('security.rules.empty')"
+      :action-text="$t('security.rules.emptyHint')"
+    />
+    <table v-else class="design-table">
       <thead>
         <tr>
           <th>{{ $t('security.rules.name') }}</th>
@@ -18,26 +22,38 @@
           <th>{{ $t('security.rules.severity') }}</th>
           <th>{{ $t('security.rules.action') }}</th>
           <th>{{ $t('security.rules.status') }}</th>
-          <th v-if="auth.isAdmin">{{ $t('security.rules.actions') }}</th>
+          <th>{{ $t('security.rules.actions') }}</th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="r in rules" :key="r.id">
           <td>{{ r.name }}</td>
           <td>{{ $t('security.rules.detectorTypes.' + r.detectorType) }}</td>
-          <td><span :class="'badge badge-' + r.severity">{{ $t('security.rules.severities.' + r.severity) }}</span></td>
-          <td><span :class="'badge badge-action-' + r.action">{{ $t('security.rules.actionsList.' + r.action) }}</span></td>
           <td>
-            <span :class="'badge ' + (r.enabled ? 'enabled' : 'disabled')">
-              {{ $t('security.rules.statuses.' + (r.enabled ? 'active' : 'inactive')) }}
-            </span>
+            <BaseBadge :variant="severityVariant(r.severity)">
+              {{ $t('security.rules.severities.' + r.severity) }}
+            </BaseBadge>
           </td>
-          <td v-if="auth.isAdmin" class="actions">
-            <router-link :to="`/security/rules/${r.id}/edit`" class="btn-sm">{{ $t('security.rules.edit') }}</router-link>
-            <button @click="toggleRule(r)" class="btn-sm" :class="r.enabled ? 'btn-warn' : 'btn-ok'">
+          <td>
+            <BaseBadge :variant="actionVariant(r.action)">
+              {{ $t('security.rules.actionsList.' + r.action) }}
+            </BaseBadge>
+          </td>
+          <td>
+            <BaseBadge :variant="r.enabled ? 'success' : 'neutral'">
+              {{ $t('security.rules.statuses.' + (r.enabled ? 'active' : 'inactive')) }}
+            </BaseBadge>
+          </td>
+          <td class="actions-cell">
+            <BaseButton variant="ghost" size="sm" @click="$router.push(`/security/rules/${r.id}/edit`)">
+              {{ $t('security.rules.edit') }}
+            </BaseButton>
+            <BaseButton variant="secondary" size="sm" @click="toggleRule(r)">
               {{ r.enabled ? $t('security.rules.disable') : $t('security.rules.enable') }}
-            </button>
-            <button @click="deleteRule(r.id)" class="btn-sm btn-danger">{{ $t('provider.delete') }}</button>
+            </BaseButton>
+            <BaseButton variant="danger" size="sm" @click="deleteRule(r.id)">
+              {{ $t('provider.delete') }}
+            </BaseButton>
           </td>
         </tr>
       </tbody>
@@ -51,11 +67,16 @@ import { ruleApi } from '../../api/security'
 import type { SecurityRule } from '../../api/security'
 import { useToast } from '../../composables/useToast'
 import { useI18n } from 'vue-i18n'
-import { useAuthStore } from '../../stores/auth'
+import { useConfirm } from '../../composables/useConfirm'
+import BasePageHeader from '../../components/ui/BasePageHeader.vue'
+import BaseButton from '../../components/ui/BaseButton.vue'
+import BaseBadge from '../../components/ui/BaseBadge.vue'
+import BaseSpinner from '../../components/ui/BaseSpinner.vue'
+import BaseEmpty from '../../components/ui/BaseEmpty.vue'
 
 const { t } = useI18n()
 const { show } = useToast()
-const auth = useAuthStore()
+const { confirm: confirmDialog } = useConfirm()
 
 const loading = ref(true)
 const rules = ref<SecurityRule[]>([])
@@ -71,6 +92,16 @@ onMounted(async () => {
   }
 })
 
+function severityVariant(severity: string): 'success' | 'danger' | 'warning' | 'info' | 'neutral' {
+  const map: Record<string, 'success' | 'danger' | 'warning' | 'info' | 'neutral'> = { low: 'info', medium: 'warning', high: 'danger', critical: 'danger' }
+  return map[severity] || 'info'
+}
+
+function actionVariant(action: string): 'success' | 'danger' | 'warning' | 'info' | 'neutral' {
+  const map: Record<string, 'success' | 'danger' | 'warning' | 'info' | 'neutral'> = { block: 'danger', flag: 'warning', audit: 'success' }
+  return map[action] || 'neutral'
+}
+
 async function toggleRule(r: SecurityRule) {
   try {
     await ruleApi.toggleEnabled(r.id)
@@ -82,7 +113,7 @@ async function toggleRule(r: SecurityRule) {
 }
 
 async function deleteRule(id: string) {
-  if (!confirm(t('security.rules.deleteConfirm'))) return
+  if (!(await confirmDialog(t('security.rules.deleteConfirm')))) return
   try {
     await ruleApi.delete(id)
     rules.value = rules.value.filter(r => r.id !== id)
@@ -94,26 +125,29 @@ async function deleteRule(id: string) {
 </script>
 
 <style scoped>
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.loading { color: #666; padding: 20px; text-align: center; }
-.empty { text-align: center; padding: 40px; color: #666; }
-.hint { font-size: 13px; color: #999; margin-top: 8px; }
-.table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
-.table th, .table td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
-.actions { display: flex; gap: 4px; }
-.badge { padding: 2px 8px; border-radius: 4px; font-size: 12px; }
-.badge.enabled { background: #e8f5e9; color: #2e7d32; }
-.badge.disabled { background: #eee; color: #666; }
-.badge-low { background: #e3f2fd; color: #1565c0; }
-.badge-medium { background: #fff3e0; color: #e65100; }
-.badge-high { background: #ffebee; color: #c62828; }
-.badge-critical { background: #fce4ec; color: #880e4f; }
-.badge-action-block { background: #ffebee; color: #c62828; }
-.badge-action-flag { background: #fff3e0; color: #e65100; }
-.badge-action-audit { background: #e8f5e9; color: #2e7d32; }
-.btn-primary { padding: 8px 16px; background: #1976d2; color: white; text-decoration: none; border-radius: 4px; }
-.btn-sm { padding: 4px 8px; background: #e3f2fd; color: #1976d2; border: none; border-radius: 4px; cursor: pointer; margin-right: 4px; text-decoration: none; font-size: 13px; }
-.btn-danger { background: #ffebee; color: #c62828; }
-.btn-warn { background: #fff3e0; color: #e65100; }
-.btn-ok { background: #e8f5e9; color: #2e7d32; }
+.design-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.design-table th {
+  font-size: 0.857rem;
+  font-weight: 600;
+  color: var(--color-foreground-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid var(--color-border);
+  padding: 10px 12px;
+  text-align: left;
+}
+.design-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+.design-table tr:hover td {
+  background: var(--color-bg-muted);
+}
+.actions-cell {
+  display: flex;
+  gap: 6px;
+}
 </style>

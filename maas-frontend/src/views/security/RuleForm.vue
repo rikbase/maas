@@ -1,52 +1,50 @@
 <template>
   <div>
-    <h1>{{ isEdit ? $t('security.rules.editTitle') : $t('security.rules.addTitle') }}</h1>
-    <div v-if="loading" class="loading">{{ $t('common.loading') }}</div>
-    <form v-else @submit.prevent="save" class="form">
-      <div class="field">
-        <label>{{ $t('security.rules.name') }}</label>
-        <input v-model="form.name" required />
-      </div>
-      <div class="field">
-        <label>{{ $t('security.rules.description') }}</label>
-        <textarea v-model="form.description" rows="2"></textarea>
-      </div>
-      <div class="field">
-        <label>{{ $t('security.rules.type') }}</label>
-        <select v-model="form.detectorType" required :disabled="isEdit">
-          <option value="prompt_injection">{{ $t('security.rules.detectorTypes.prompt_injection') }}</option>
-          <option value="secret_leak">{{ $t('security.rules.detectorTypes.secret_leak') }}</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>{{ $t('security.rules.severity') }}</label>
-        <select v-model="form.severity">
-          <option value="low">{{ $t('security.rules.severities.low') }}</option>
-          <option value="medium">{{ $t('security.rules.severities.medium') }}</option>
-          <option value="high">{{ $t('security.rules.severities.high') }}</option>
-          <option value="critical">{{ $t('security.rules.severities.critical') }}</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>{{ $t('security.rules.action') }}</label>
-        <select v-model="form.action">
-          <option value="block">{{ $t('security.rules.actionsList.block') }}</option>
-          <option value="flag">{{ $t('security.rules.actionsList.flag') }}</option>
-          <option value="audit">{{ $t('security.rules.actionsList.audit') }}</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>{{ $t('security.rules.threshold') }}</label>
-        <input v-model.number="form.threshold" type="number" step="0.01" min="0" max="1" />
-      </div>
-      <div class="field">
-        <label>{{ $t('security.rules.configJson') }}</label>
-        <textarea v-model="form.configJson" rows="6"></textarea>
-      </div>
-      <button type="submit" class="btn-primary" :disabled="saving">
-        {{ saving ? $t('common.loading') : (isEdit ? $t('security.rules.update') : $t('security.rules.create')) }}
-      </button>
-    </form>
+    <BasePageHeader :title="isEdit ? $t('security.rules.editTitle') : $t('security.rules.addTitle')" />
+
+    <BaseSpinner v-if="loading" size="lg" />
+    <BaseCard v-else>
+      <form @submit.prevent="save">
+        <BaseFormField :label="$t('security.rules.name')" required>
+          <input v-model="form.name" required class="input-field" />
+        </BaseFormField>
+        <BaseFormField :label="$t('security.rules.description')">
+          <textarea v-model="form.description" rows="2" class="input-field"></textarea>
+        </BaseFormField>
+        <BaseFormField :label="$t('security.rules.type')" required>
+          <select v-model="form.detectorType" required :disabled="isEdit" class="input-field">
+            <option value="prompt_injection">{{ $t('security.rules.detectorTypes.prompt_injection') }}</option>
+            <option value="secret_leak">{{ $t('security.rules.detectorTypes.secret_leak') }}</option>
+          </select>
+        </BaseFormField>
+        <BaseFormField :label="$t('security.rules.severity')">
+          <select v-model="form.severity" class="input-field">
+            <option value="low">{{ $t('security.rules.severities.low') }}</option>
+            <option value="medium">{{ $t('security.rules.severities.medium') }}</option>
+            <option value="high">{{ $t('security.rules.severities.high') }}</option>
+            <option value="critical">{{ $t('security.rules.severities.critical') }}</option>
+          </select>
+        </BaseFormField>
+        <BaseFormField :label="$t('security.rules.action')">
+          <select v-model="form.action" class="input-field">
+            <option value="block">{{ $t('security.rules.actionsList.block') }}</option>
+            <option value="flag">{{ $t('security.rules.actionsList.flag') }}</option>
+            <option value="audit">{{ $t('security.rules.actionsList.audit') }}</option>
+          </select>
+        </BaseFormField>
+        <BaseFormField :label="$t('security.rules.threshold')">
+          <input v-model.number="form.threshold" type="number" step="0.01" min="0" max="1" class="input-field" />
+        </BaseFormField>
+        <BaseFormField :label="$t('security.rules.configJson')">
+          <textarea v-model="form.configJson" rows="6" class="input-field"></textarea>
+        </BaseFormField>
+        <div style="margin-top: var(--space-4);">
+          <BaseButton variant="primary" type="submit" :loading="saving" :disabled="saving">
+            {{ saving ? '' : (isEdit ? $t('security.rules.update') : $t('security.rules.create')) }}
+          </BaseButton>
+        </div>
+      </form>
+    </BaseCard>
   </div>
 </template>
 
@@ -57,6 +55,11 @@ import { ruleApi } from '../../api/security'
 import type { CreateRuleRequest } from '../../api/security'
 import { useToast } from '../../composables/useToast'
 import { useI18n } from 'vue-i18n'
+import BasePageHeader from '../../components/ui/BasePageHeader.vue'
+import BaseCard from '../../components/ui/BaseCard.vue'
+import BaseFormField from '../../components/ui/BaseFormField.vue'
+import BaseButton from '../../components/ui/BaseButton.vue'
+import BaseSpinner from '../../components/ui/BaseSpinner.vue'
 
 const { t } = useI18n()
 const { show } = useToast()
@@ -118,11 +121,29 @@ async function save() {
 </script>
 
 <style scoped>
-.loading { color: #666; padding: 20px; text-align: center; }
-.form { max-width: 500px; background: white; padding: 24px; border-radius: 8px; }
-.field { margin-bottom: 16px; }
-.field label { display: block; margin-bottom: 4px; font-weight: 500; }
-.field input, .field select, .field textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
-.btn-primary { padding: 8px 16px; background: #1976d2; color: white; border: none; border-radius: 4px; cursor: pointer; }
-.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+form {
+  max-width: 560px;
+}
+.input-field {
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 0.929rem;
+  background: var(--color-bg-card);
+  width: 100%;
+  box-sizing: border-box;
+}
+.input-field:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+  outline: none;
+}
+.input-field:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+textarea.input-field {
+  font-family: var(--font-mono);
+  font-size: 0.857rem;
+}
 </style>

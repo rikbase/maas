@@ -1,35 +1,34 @@
 <template>
   <div>
-    <div class="header">
-      <h1>{{ $t('security.events.title') }}</h1>
-      <div class="stats" v-if="stats">
-        <span class="stat">{{ $t('security.events.total') }}: <strong>{{ stats.totalEvents }}</strong></span>
-        <span class="stat stat-blocked">{{ $t('security.events.blocked') }}: <strong>{{ stats.blockedCount }}</strong></span>
-        <span class="stat stat-flagged">{{ $t('security.events.flagged') }}: <strong>{{ stats.flaggedCount }}</strong></span>
-        <span class="stat stat-24h">{{ $t('security.events.last24h') }}: <strong>{{ stats.last24hEvents }}</strong></span>
-      </div>
-    </div>
+    <BasePageHeader :title="$t('security.events.title')">
+      <template #actions>
+        <div v-if="stats" class="stats">
+          <div class="stat-card">{{ $t('security.events.total') }}: <strong>{{ stats.totalEvents }}</strong></div>
+          <div class="stat-card stat-blocked">{{ $t('security.events.blocked') }}: <strong>{{ stats.blockedCount }}</strong></div>
+          <div class="stat-card stat-flagged">{{ $t('security.events.flagged') }}: <strong>{{ stats.flaggedCount }}</strong></div>
+          <div class="stat-card stat-24h">{{ $t('security.events.last24h') }}: <strong>{{ stats.last24hEvents }}</strong></div>
+        </div>
+      </template>
+    </BasePageHeader>
 
     <div class="filters">
-      <select v-model="filter.severity" @change="loadEvents">
+      <select v-model="filter.severity" @change="loadEvents" class="input-field">
         <option value="">{{ $t('security.events.allSeverities') }}</option>
         <option value="low">{{ $t('security.rules.severities.low') }}</option>
         <option value="medium">{{ $t('security.rules.severities.medium') }}</option>
         <option value="high">{{ $t('security.rules.severities.high') }}</option>
         <option value="critical">{{ $t('security.rules.severities.critical') }}</option>
       </select>
-      <select v-model="filter.detectorType" @change="loadEvents">
+      <select v-model="filter.detectorType" @change="loadEvents" class="input-field">
         <option value="">{{ $t('security.events.allTypes') }}</option>
         <option value="prompt_injection">{{ $t('security.rules.detectorTypes.prompt_injection') }}</option>
         <option value="secret_leak">{{ $t('security.rules.detectorTypes.secret_leak') }}</option>
       </select>
     </div>
 
-    <div v-if="loading" class="loading">{{ $t('common.loading') }}</div>
-    <div v-else-if="events.length === 0" class="empty">
-      <p>{{ $t('security.events.empty') }}</p>
-    </div>
-    <table v-else class="table">
+    <BaseSpinner v-if="loading" size="lg" />
+    <BaseEmpty v-else-if="events.length === 0" :text="$t('security.events.empty')" />
+    <table v-else class="design-table">
       <thead>
         <tr>
           <th>{{ $t('security.events.time') }}</th>
@@ -44,9 +43,17 @@
       <tbody>
         <tr v-for="e in events" :key="e.id">
           <td class="time">{{ formatTime(e.createdAt) }}</td>
-          <td><span class="badge badge-type">{{ $t('security.rules.detectorTypes.' + e.detectorType) }}</span></td>
-          <td><span :class="'badge badge-' + e.severity">{{ $t('security.rules.severities.' + e.severity) }}</span></td>
-          <td><span :class="'badge badge-action-' + e.actionTaken">{{ $t('security.rules.actionsList.' + e.actionTaken) }}</span></td>
+          <td><BaseBadge variant="info">{{ $t('security.rules.detectorTypes.' + e.detectorType) }}</BaseBadge></td>
+          <td>
+            <BaseBadge :variant="severityVariant(e.severity)">
+              {{ $t('security.rules.severities.' + e.severity) }}
+            </BaseBadge>
+          </td>
+          <td>
+            <BaseBadge :variant="actionVariant(e.actionTaken)">
+              {{ $t('security.rules.actionsList.' + e.actionTaken) }}
+            </BaseBadge>
+          </td>
           <td>{{ e.model || '-' }}</td>
           <td>{{ e.direction }}</td>
           <td class="summary-cell">{{ truncate(e.requestSummary, 60) }}</td>
@@ -54,10 +61,8 @@
       </tbody>
     </table>
 
-    <div v-if="totalPages > 1" class="pagination">
-      <button :disabled="page <= 0" @click="page--; loadEvents()" class="btn-sm">{{ $t('security.events.prev') }}</button>
-      <span>{{ page + 1 }} / {{ totalPages }}</span>
-      <button :disabled="page >= totalPages - 1" @click="page++; loadEvents()" class="btn-sm">{{ $t('security.events.next') }}</button>
+    <div v-if="totalPages > 1" class="pagination-wrap">
+      <BasePagination :page="page + 1" :page-size="20" :total="totalPages * 20" @update:page="p => { page = p - 1; loadEvents() }" />
     </div>
   </div>
 </template>
@@ -66,6 +71,12 @@
 import { ref, onMounted, reactive } from 'vue'
 import { eventApi } from '../../api/security'
 import type { SecurityEvent, SecurityStats } from '../../api/security'
+import BasePageHeader from '../../components/ui/BasePageHeader.vue'
+import BaseBadge from '../../components/ui/BaseBadge.vue'
+import BaseSpinner from '../../components/ui/BaseSpinner.vue'
+import BaseEmpty from '../../components/ui/BaseEmpty.vue'
+import BasePagination from '../../components/ui/BasePagination.vue'
+
 const loading = ref(true)
 const events = ref<SecurityEvent[]>([])
 const stats = ref<SecurityStats | null>(null)
@@ -76,6 +87,16 @@ const filter = reactive({ severity: '', detectorType: '' })
 onMounted(async () => {
   await Promise.all([loadEvents(), loadStats()])
 })
+
+function severityVariant(severity: string): 'success' | 'danger' | 'warning' | 'info' | 'neutral' {
+  const map: Record<string, 'success' | 'danger' | 'warning' | 'info' | 'neutral'> = { low: 'info', medium: 'warning', high: 'danger', critical: 'danger' }
+  return map[severity] || 'info'
+}
+
+function actionVariant(action: string): 'success' | 'danger' | 'warning' | 'info' | 'neutral' {
+  const map: Record<string, 'success' | 'danger' | 'warning' | 'info' | 'neutral'> = { block: 'danger', flag: 'warning', audit: 'success' }
+  return map[action] || 'neutral'
+}
 
 async function loadEvents() {
   loading.value = true
@@ -116,30 +137,83 @@ function truncate(s: string | null, max: number) {
 </script>
 
 <style scoped>
-.header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; flex-direction: column; gap: 12px; }
-.stats { display: flex; gap: 16px; font-size: 13px; }
-.stat { background: white; padding: 8px 16px; border-radius: 6px; }
-.stat-blocked strong { color: #c62828; }
-.stat-flagged strong { color: #e65100; }
-.stat-24h strong { color: #1565c0; }
-.filters { display: flex; gap: 8px; margin-bottom: 16px; }
-.filters select { padding: 6px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; }
-.loading { color: #666; padding: 20px; text-align: center; }
-.empty { text-align: center; padding: 40px; color: #666; }
-.table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
-.table th, .table td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 13px; }
-.time { white-space: nowrap; font-size: 12px; color: #666; }
-.summary-cell { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.badge { padding: 2px 8px; border-radius: 4px; font-size: 12px; white-space: nowrap; }
-.badge-type { background: #e8eaf6; color: #283593; }
-.badge-low { background: #e3f2fd; color: #1565c0; }
-.badge-medium { background: #fff3e0; color: #e65100; }
-.badge-high { background: #ffebee; color: #c62828; }
-.badge-critical { background: #fce4ec; color: #880e4f; }
-.badge-action-block { background: #ffebee; color: #c62828; }
-.badge-action-flag { background: #fff3e0; color: #e65100; }
-.badge-action-audit { background: #e8f5e9; color: #2e7d32; }
-.pagination { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; }
-.btn-sm { padding: 4px 8px; background: #e3f2fd; color: #1976d2; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; }
-.btn-sm:disabled { opacity: 0.5; cursor: not-allowed; }
+.stats {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.stat-card {
+  background: var(--color-bg-card);
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  font-size: 0.857rem;
+  border: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+.stat-card strong {
+  font-weight: 600;
+}
+.stat-blocked strong {
+  color: var(--color-danger);
+}
+.stat-flagged strong {
+  color: var(--color-warning);
+}
+.stat-24h strong {
+  color: var(--color-primary);
+}
+.filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.input-field {
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 0.929rem;
+  background: var(--color-bg-card);
+}
+.input-field:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+  outline: none;
+}
+.design-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.design-table th {
+  font-size: 0.857rem;
+  font-weight: 600;
+  color: var(--color-foreground-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid var(--color-border);
+  padding: 10px 12px;
+  text-align: left;
+}
+.design-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+.design-table tr:hover td {
+  background: var(--color-bg-muted);
+}
+.time {
+  white-space: nowrap;
+  font-size: 0.857rem;
+  color: var(--color-foreground-secondary);
+}
+.summary-cell {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pagination-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-4);
+}
 </style>

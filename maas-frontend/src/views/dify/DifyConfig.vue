@@ -1,78 +1,82 @@
 <template>
   <div>
-    <div class="header">
-      <h1>{{ $t('dify.title') }}</h1>
+    <BasePageHeader :title="$t('dify.title')" />
+
+    <div v-if="loading" class="loading">
+      <BaseSpinner size="lg" />
     </div>
-
-    <div v-if="loading" class="loading">{{ $t('common.loading') }}</div>
-
     <template v-else>
-      <!-- Connection list -->
-      <table v-if="connections.length > 0" class="table">
-        <thead><tr>
-          <th>{{ $t('dify.name') }}</th>
-          <th>{{ $t('dify.baseUrl') }}</th>
-          <th>{{ $t('dify.adminEmail') }}</th>
-          <th>{{ $t('dify.status') }}</th>
-          <th>{{ $t('dify.lastTested') }}</th>
-          <th v-if="auth.isAdmin">{{ $t('provider.actions') }}</th>
-        </tr></thead>
-        <tbody>
-          <tr v-for="c in connections" :key="c.id">
-            <td>{{ c.name }}</td>
-            <td class="mono">{{ c.baseUrl }}</td>
-            <td class="mono">{{ c.adminEmail }}</td>
-            <td><span :class="'badge ' + statusClass(c.status)">{{ $t('dify.' + c.status) }}</span></td>
-            <td class="muted">{{ c.lastTestAt ? formatTime(c.lastTestAt) : '-' }}</td>
-            <td v-if="auth.isAdmin" class="actions">
-              <button @click="openConsole(c)" class="btn-sm btn-console">{{ $t('dify.openConsole') }}</button>
-              <button @click="loginToDify(c)" class="btn-sm" :disabled="c._logging">
-                {{ c._logging ? $t('dify.loggingIn') : $t('dify.loginToDify') }}
-              </button>
-              <button @click="testConnection(c)" class="btn-sm" :disabled="c._testing">
-                {{ c._testing ? $t('dify.testing') : $t('dify.testConnection') }}
-              </button>
-              <button @click="editConnection(c)" class="btn-sm">{{ $t('provider.edit') }}</button>
-              <button @click="deleteConnection(c.id)" class="btn-sm btn-danger">{{ $t('provider.delete') }}</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div v-else class="empty">
-        <p>{{ $t('dify.empty') }}</p>
+      <!-- Connection cards -->
+      <div v-if="connections.length > 0" class="card-grid">
+        <div
+          v-for="c in connections"
+          :key="c.id"
+          class="dify-card"
+          @click="editConnection(c)"
+        >
+          <div class="dify-card__top">
+            <div class="dify-card__info">
+              <span class="dify-card__name">{{ c.name }}</span>
+              <span class="dify-card__url mono">{{ c.baseUrl }}</span>
+            </div>
+            <BaseBadge :variant="statusBadgeVariant(c.status)">
+              {{ $t('dify.' + c.status) }}
+            </BaseBadge>
+          </div>
+          <div class="dify-card__meta">
+            <span class="muted">{{ $t('dify.lastTested') }}: {{ c.lastTestAt ? formatTime(c.lastTestAt) : '-' }}</span>
+          </div>
+          <div class="dify-card__actions" @click.stop>
+            <BaseButton size="sm" variant="secondary" @click="openConsole(c)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;vertical-align:-2px"><polyline points="9 18 15 12 9 6"/></svg>
+              {{ $t('dify.openConsole') }}
+            </BaseButton>
+            <BaseButton size="sm" variant="secondary" :disabled="c._testing" :loading="c._testing" @click="testConnection(c)">
+              {{ c._testing ? $t('dify.testing') : $t('dify.testConnection') }}
+            </BaseButton>
+            <BaseButton size="sm" variant="secondary" @click="editConnection(c)">
+              {{ $t('provider.edit') }}
+            </BaseButton>
+            <BaseButton size="sm" variant="danger" @click="deleteConnection(c.id)">
+              {{ $t('provider.delete') }}
+            </BaseButton>
+          </div>
+        </div>
       </div>
+
+      <BaseEmpty v-else :text="$t('dify.empty')" />
 
       <!-- Add / Edit form -->
-      <div class="form-section">
-        <h2>{{ isEditing ? $t('dify.editConnection') : $t('dify.addConnection') }}</h2>
+      <BaseCard class="form-card">
+        <template #header>
+          <h2 class="form-title">{{ isEditing ? $t('dify.editConnection') : $t('dify.addConnection') }}</h2>
+        </template>
         <form @submit.prevent="save" class="form">
-          <div class="field">
-            <label>{{ $t('dify.name') }}</label>
+          <BaseFormField :label="$t('dify.name')" required>
             <input v-model="form.name" class="form-input" required />
-          </div>
-          <div class="field">
-            <label>{{ $t('dify.baseUrl') }}</label>
+          </BaseFormField>
+          <BaseFormField :label="$t('dify.baseUrl')" required>
             <input v-model="form.baseUrl" class="form-input mono" placeholder="http://localhost:5001" required />
-          </div>
-          <div class="field">
-            <label>{{ $t('dify.apiKey') }}</label>
-            <input v-model="form.apiKey" class="form-input" type="password" :placeholder="isEditing ? $t('dify.apiKeyPlaceholder') : ''" :required="!isEditing" />
-          </div>
-          <div class="field">
-            <label>{{ $t('dify.adminEmail') }}</label>
-            <input v-model="form.adminEmail" class="form-input" type="email" placeholder="admin@example.com" required />
-          </div>
-          <div class="field">
-            <label>{{ $t('dify.adminPassword') }}</label>
-            <input v-model="form.adminPassword" class="form-input" type="password" :placeholder="isEditing ? $t('dify.apiKeyPlaceholder') : ''" :required="!isEditing" />
-          </div>
+          </BaseFormField>
+          <BaseFormField :label="$t('dify.authCode')" :required="!isEditing">
+            <input v-model="form.authCode" class="form-input" type="password" :placeholder="isEditing ? $t('dify.authCodePlaceholder') : ''" :required="!isEditing" />
+          </BaseFormField>
+          <BaseFormField :label="$t('dify.adminEmail')">
+            <input v-model="form.adminEmail" class="form-input" type="email" placeholder="admin@example.com" />
+          </BaseFormField>
+          <BaseFormField :label="$t('dify.adminPassword')">
+            <input v-model="form.adminPassword" class="form-input" type="password" :placeholder="isEditing ? $t('dify.adminPasswordPlaceholder') : ''" />
+          </BaseFormField>
           <div class="form-actions">
-            <button type="submit" class="btn-primary" :disabled="saving">{{ saving ? $t('common.saving') : $t('common.save') }}</button>
-            <button v-if="isEditing" type="button" class="btn-sm" @click="cancelEdit">{{ $t('common.cancel') }}</button>
+            <BaseButton type="submit" variant="primary" :loading="saving" :disabled="saving">
+              {{ saving ? $t('common.saving') : $t('common.save') }}
+            </BaseButton>
+            <BaseButton v-if="isEditing" type="button" variant="secondary" @click="cancelEdit">
+              {{ $t('common.cancel') }}
+            </BaseButton>
           </div>
         </form>
-      </div>
+      </BaseCard>
     </template>
   </div>
 </template>
@@ -83,18 +87,26 @@ import { difyApi } from '../../api/dify'
 import type { DifyConfig } from '../../api/dify'
 import { useToast } from '../../composables/useToast'
 import { useI18n } from 'vue-i18n'
-import { useAuthStore } from '../../stores/auth'
+import { useConfirm } from '../../composables/useConfirm'
+
+import BasePageHeader from '../../components/ui/BasePageHeader.vue'
+import BaseCard from '../../components/ui/BaseCard.vue'
+import BaseBadge from '../../components/ui/BaseBadge.vue'
+import BaseButton from '../../components/ui/BaseButton.vue'
+import BaseSpinner from '../../components/ui/BaseSpinner.vue'
+import BaseEmpty from '../../components/ui/BaseEmpty.vue'
+import BaseFormField from '../../components/ui/BaseFormField.vue'
 
 const { t } = useI18n()
 const { show } = useToast()
-const auth = useAuthStore()
+const { confirm: confirmDialog } = useConfirm()
 
 const loading = ref(true)
-const connections = ref<(DifyConfig & { _testing?: boolean; _logging?: boolean })[]>([])
+const connections = ref<(DifyConfig & { _testing?: boolean })[]>([])
 const saving = ref(false)
 const isEditing = ref(false)
 const editingId = ref<string | null>(null)
-const form = ref({ name: '', baseUrl: '', apiKey: '', adminEmail: '', adminPassword: '' })
+const form = ref({ name: '', baseUrl: '', authCode: '', adminEmail: '', adminPassword: '' })
 
 onMounted(async () => {
   try {
@@ -107,10 +119,10 @@ onMounted(async () => {
   }
 })
 
-function statusClass(status: string) {
-  if (status === 'connected') return 'connected'
-  if (status === 'error') return 'error'
-  return 'disconnected'
+function statusBadgeVariant(status: string): 'success' | 'danger' | 'neutral' {
+  if (status === 'connected') return 'success'
+  if (status === 'error') return 'danger'
+  return 'neutral'
 }
 
 function formatTime(ts: string) {
@@ -120,7 +132,8 @@ function formatTime(ts: string) {
 async function openConsole(c: DifyConfig) {
   try {
     const res = await difyApi.oauthAuthorize('dify', c.id)
-    window.open(res.data.redirectUri + '?code=' + res.data.code + '&state=' + res.data.state, '_blank')
+    const data = res.data
+    window.open(data.redirectUri + '?code=' + data.code + '&state=' + data.state, '_blank')
   } catch {
     show(t('common.error'), 'error')
   }
@@ -129,32 +142,35 @@ async function openConsole(c: DifyConfig) {
 function editConnection(c: DifyConfig) {
   isEditing.value = true
   editingId.value = c.id
-  form.value = { name: c.name, baseUrl: c.baseUrl, apiKey: '', adminEmail: c.adminEmail, adminPassword: '' }
+  form.value = { name: c.name, baseUrl: c.baseUrl, authCode: '', adminEmail: c.adminEmail || '', adminPassword: '' }
 }
 
 function cancelEdit() {
   isEditing.value = false
   editingId.value = null
-  form.value = { name: '', baseUrl: '', apiKey: '', adminEmail: '', adminPassword: '' }
+  form.value = { name: '', baseUrl: '', authCode: '', adminEmail: '', adminPassword: '' }
 }
 
 async function save() {
   saving.value = true
   try {
+    const payload: any = { name: form.value.name, baseUrl: form.value.baseUrl }
+    if (form.value.authCode) payload.authCode = form.value.authCode
+    if (form.value.adminEmail) payload.adminEmail = form.value.adminEmail
+    if (form.value.adminPassword) payload.adminPassword = form.value.adminPassword
+
     if (isEditing.value && editingId.value) {
-      const data: any = { name: form.value.name, baseUrl: form.value.baseUrl, adminEmail: form.value.adminEmail }
-      if (form.value.apiKey) data.apiKey = form.value.apiKey
-      if (form.value.adminPassword) data.adminPassword = form.value.adminPassword
-      const res = await difyApi.update(editingId.value, data)
+      const res = await difyApi.update(editingId.value, payload)
       const idx = connections.value.findIndex(c => c.id === editingId.value)
-      if (idx >= 0) connections.value[idx] = { ...res.data, _testing: false, _logging: false }
+      if (idx >= 0) connections.value[idx] = { ...res.data, _testing: false }
       show(t('dify.saved'))
       cancelEdit()
     } else {
-      const res = await difyApi.create({ ...form.value })
-      connections.value.push({ ...res.data, _testing: false, _logging: false })
+      payload.authCode = form.value.authCode
+      const res = await difyApi.create(payload)
+      connections.value.push({ ...res.data, _testing: false })
       show(t('dify.saved'))
-      form.value = { name: '', baseUrl: '', apiKey: '', adminEmail: '', adminPassword: '' }
+      cancelEdit()
     }
   } catch {
     show(t('common.error'), 'error')
@@ -164,7 +180,7 @@ async function save() {
 }
 
 async function deleteConnection(id: string) {
-  if (!confirm(t('dify.deleteConfirm'))) return
+  if (!(await confirmDialog(t('dify.deleteConfirm')))) return
   try {
     await difyApi.delete(id)
     connections.value = connections.value.filter(c => c.id !== id)
@@ -193,56 +209,135 @@ async function testConnection(c: DifyConfig & { _testing?: boolean }) {
     c._testing = false
   }
 }
-
-async function loginToDify(c: DifyConfig & { _logging?: boolean }) {
-  c._logging = true
-  try {
-    const res = await difyApi.login(c.id)
-    const r = res.data
-    if (r.connected) {
-      show(t('dify.loginSuccess'))
-    } else {
-      show(t('dify.loginFailed') + ': ' + r.message, 'error')
-    }
-    const updated = await difyApi.get(c.id)
-    const idx = connections.value.findIndex(x => x.id === c.id)
-    if (idx >= 0) connections.value[idx] = { ...updated.data, _logging: false }
-  } catch {
-    show(t('common.error'), 'error')
-    c._logging = false
-  }
-}
 </script>
 
 <style scoped>
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.loading { color: #666; padding: 20px; text-align: center; }
-.empty { text-align: center; padding: 40px; color: #666; }
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: var(--space-12);
+}
 
-.table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; margin-bottom: 24px; }
-.table th, .table td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 13px; }
-.table th { background: #f9fafb; font-weight: 600; color: #374151; }
+/* Card grid */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
 
-.badge { padding: 2px 8px; border-radius: 4px; font-size: 12px; white-space: nowrap; }
-.badge.connected { background: #e8f5e9; color: #2e7d32; }
-.badge.disconnected { background: #f3f4f6; color: #6b7280; }
-.badge.error { background: #ffebee; color: #c62828; }
+.dify-card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
 
-.mono { font-family: monospace; font-size: 12px; }
-.muted { color: #666; font-size: 12px; }
-.actions { white-space: nowrap; }
+.dify-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.1);
+  transform: translateY(-1px);
+}
 
-.form-section { background: white; border-radius: 8px; padding: 20px; border: 1px solid #e0e0e0; }
-.form-section h2 { font-size: 15px; margin: 0 0 16px; }
-.form { display: flex; flex-direction: column; gap: 12px; max-width: 480px; }
-.field { display: flex; flex-direction: column; gap: 4px; }
-.field label { font-size: 12px; color: #666; font-weight: 500; }
-.form-input { padding: 8px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; }
-.form-actions { display: flex; gap: 8px; margin-top: 4px; }
-.btn-primary { padding: 8px 16px; background: #1976d2; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; }
-.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
-.btn-sm { padding: 4px 8px; background: #e3f2fd; color: #1976d2; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; text-decoration: none; }
-.btn-sm:disabled { opacity: 0.6; cursor: not-allowed; }
-.btn-danger { background: #ffebee; color: #c62828; }
-.btn-console { background: #e8f5e9; color: #2e7d32; }
+.dify-card__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.dify-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.dify-card__name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-foreground);
+}
+
+.dify-card__url {
+  font-size: 0.786rem;
+  color: var(--color-foreground-secondary);
+  word-break: break-all;
+}
+
+.dify-card__meta {
+  margin-bottom: var(--space-3);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.857rem;
+}
+
+.muted {
+  color: var(--color-foreground-secondary);
+  font-size: 0.786rem;
+}
+
+.dify-card__actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+}
+
+/* Form */
+.form-card {
+  margin-top: var(--space-6);
+}
+
+.form-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-foreground);
+  margin: 0;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  max-width: 480px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 0.929rem;
+  font-family: var(--font-sans);
+  color: var(--color-foreground);
+  background: var(--color-bg-card);
+  box-sizing: border-box;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.form-input::placeholder {
+  color: var(--color-muted);
+}
+
+.form-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
+}
 </style>

@@ -37,15 +37,15 @@ function onDragStart(event: DragEvent, step: { type: string }) {
 </script>
 
 <style scoped>
-.palette { background: white; border-radius: 8px; padding: 12px; width: 180px; border: 1px solid #e0e0e0; }
-.palette-title { font-size: 13px; margin: 0 0 12px; color: #333; }
+.palette { background: var(--color-bg-card); border-radius: var(--radius-md); padding: 12px; width: 180px; border: 1px solid var(--color-border); }
+.palette-title { font-size: 13px; margin: 0 0 12px; color: var(--color-foreground); }
 .palette-item { padding: 8px 10px; margin-bottom: 6px; border-radius: 6px; cursor: grab; display: flex; align-items: center; gap: 8px; font-size: 13px; transition: opacity 0.15s; user-select: none; }
 .palette-item:hover { opacity: 0.85; }
 .palette-item:active { cursor: grabbing; }
 .palette-icon { font-weight: bold; font-size: 11px; background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 3px; width: 22px; text-align: center; }
-.palette-ai_call { background: #e3f2fd; color: #1565c0; border: 1px solid #bbdefb; }
+.palette-ai_call { background: #e3f2fd; color: var(--color-primary-hover); border: 1px solid #bbdefb; }
 .palette-tool { background: #f3e5f5; color: #7b1fa2; border: 1px solid #e1bee7; }
 .palette-skill { background: #e0f2f1; color: #00796b; border: 1px solid #b2dfdb; }
 .palette-condition { background: #fff3e0; color: #e65100; border: 1px solid #ffe0b2; }
-.palette-loop { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
+.palette-loop { background: #e8f5e9; color: var(--color-success); border: 1px solid #c8e6c9; }
 </style>

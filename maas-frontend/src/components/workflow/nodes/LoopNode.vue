@@ -25,10 +25,10 @@ defineProps<{
 </script>
 
 <style scoped>
-.node { min-width: 160px; background: white; border: 2px solid #2e7d32; border-radius: 8px; font-size: 12px; overflow: hidden; }
-.node-header { background: #2e7d32; color: white; padding: 6px 10px; display: flex; align-items: center; gap: 6px; }
+.node { min-width: 160px; background: var(--color-bg-card); border: 2px solid var(--color-success); border-radius: var(--radius-md); font-size: 12px; overflow: hidden; }
+.node-header { background: var(--color-success); color: var(--color-bg-card); padding: 6px 10px; display: flex; align-items: center; gap: 6px; }
 .node-icon { font-weight: bold; font-size: 14px; background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 3px; }
 .node-label { font-weight: 600; }
 .node-body { padding: 8px 10px; }
-.node-field { color: #666; font-size: 11px; margin-top: 2px; }
+.node-field { color: var(--color-foreground-secondary); font-size: 11px; margin-top: 2px; }
 </style>

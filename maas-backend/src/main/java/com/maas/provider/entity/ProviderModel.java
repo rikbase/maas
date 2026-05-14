@@ -1,6 +1,8 @@
 package com.maas.provider.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.util.UUID;
 
 @Entity
@@ -20,6 +22,7 @@ public class ProviderModel {
     private String modelName;
 
     @Column(columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
     private String capabilities;
 
     @Column(length = 32)

@@ -244,10 +244,10 @@ function onNodeDelete(nodeId: string) {
 .editor-toolbar h1 { font-size: 18px; margin: 0; }
 .toolbar-actions { display: flex; gap: 8px; }
 .editor-body { display: flex; gap: 12px; flex: 1; min-height: 0; }
-.canvas-wrapper { flex: 1; border-radius: 8px; overflow: hidden; background: #f8f9fa; border: 1px solid #e0e0e0; position: relative; }
-.btn-primary { padding: 8px 16px; background: #1976d2; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; }
+.canvas-wrapper { flex: 1; border-radius: var(--radius-md); overflow: hidden; background: var(--color-bg-muted); border: 1px solid var(--color-border); position: relative; }
+.btn-primary { padding: 8px 16px; background: var(--color-primary); color: var(--color-bg-card); border: none; border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; }
 .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
-.btn-ok { padding: 8px 16px; background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; border-radius: 4px; cursor: pointer; font-size: 13px; }
+.btn-ok { padding: 8px 16px; background: var(--color-bg-muted); color: var(--color-success); border: 1px solid var(--color-border); border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; }
 .btn-ok:disabled { opacity: 0.6; cursor: not-allowed; }
-.btn-sm { padding: 6px 12px; background: #e3f2fd; color: #1976d2; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; font-size: 13px; }
+.btn-sm { padding: 6px 12px; background: var(--color-bg-muted); color: var(--color-primary); border: none; border-radius: var(--radius-sm); cursor: pointer; text-decoration: none; font-size: 13px; }
 </style>

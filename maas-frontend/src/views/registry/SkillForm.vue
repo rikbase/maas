@@ -1,32 +1,43 @@
 <template>
   <div>
-    <h1>{{ isEdit ? $t('registry.skills.editTitle') : $t('registry.skills.addTitle') }}</h1>
-    <div v-if="loading" class="loading">{{ $t('common.loading') }}</div>
-    <form v-else @submit.prevent="save" class="form">
-      <div class="field">
-        <label>{{ $t('registry.skills.name') }}</label>
-        <input v-model="form.name" required />
-      </div>
-      <div class="field">
-        <label>{{ $t('registry.skills.description') }}</label>
-        <textarea v-model="form.description" rows="3"></textarea>
-      </div>
-      <div class="field">
-        <label>{{ $t('registry.skills.type') }}</label>
-        <input v-model="form.type" placeholder="e.g. translation, summarization" />
-      </div>
-      <div class="field">
-        <label>{{ $t('registry.skills.configJson') }}</label>
-        <textarea v-model="form.configJson" rows="4"></textarea>
-      </div>
-      <button type="submit" class="btn-primary" :disabled="saving">
-        {{ saving ? $t('common.loading') : (isEdit ? $t('provider.update') : $t('provider.create')) }}
-      </button>
-    </form>
+    <BasePageHeader :title="isEdit ? $t('registry.skills.editTitle') : $t('registry.skills.addTitle')" />
+
+    <BaseSpinner v-if="loading" class="spinner" />
+
+    <BaseCard v-else>
+      <form @submit.prevent="save">
+        <BaseFormField :label="$t('registry.skills.name')" required>
+          <input v-model="form.name" required class="form-input" />
+        </BaseFormField>
+
+        <BaseFormField :label="$t('registry.skills.description')">
+          <textarea v-model="form.description" rows="3" class="form-input"></textarea>
+        </BaseFormField>
+
+        <BaseFormField :label="$t('registry.skills.type')">
+          <input v-model="form.type" placeholder="e.g. translation, summarization" class="form-input" />
+        </BaseFormField>
+
+        <BaseFormField :label="$t('registry.skills.configJson')">
+          <textarea v-model="form.configJson" rows="4" class="form-input form-input-code"></textarea>
+        </BaseFormField>
+
+        <div class="form-actions">
+          <BaseButton type="submit" variant="primary" :loading="saving" :disabled="saving">
+            {{ saving ? $t('common.loading') : (isEdit ? $t('provider.update') : $t('provider.create')) }}
+          </BaseButton>
+        </div>
+      </form>
+    </BaseCard>
   </div>
 </template>
 
 <script setup lang="ts">
+import BasePageHeader from '../../components/ui/BasePageHeader.vue'
+import BaseButton from '../../components/ui/BaseButton.vue'
+import BaseCard from '../../components/ui/BaseCard.vue'
+import BaseFormField from '../../components/ui/BaseFormField.vue'
+import BaseSpinner from '../../components/ui/BaseSpinner.vue'
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { skillApi } from '../../api/registry'
@@ -77,11 +88,38 @@ async function save() {
 </script>
 
 <style scoped>
-.loading { color: #666; padding: 20px; text-align: center; }
-.form { max-width: 500px; background: white; padding: 24px; border-radius: 8px; }
-.field { margin-bottom: 16px; }
-.field label { display: block; margin-bottom: 4px; font-weight: 500; }
-.field input, .field textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
-.btn-primary { padding: 8px 16px; background: #1976d2; color: white; border: none; border-radius: 4px; cursor: pointer; }
-.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+.spinner {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-8);
+}
+.form-actions {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+.form-input {
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  font-size: 0.875rem;
+  font-family: var(--font-sans);
+  color: var(--color-foreground);
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--color-bg-card);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.form-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+.form-input-code {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+textarea.form-input {
+  resize: vertical;
+}
 </style>

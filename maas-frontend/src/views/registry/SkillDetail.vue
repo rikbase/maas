@@ -1,73 +1,100 @@
 <template>
   <div>
-    <div v-if="loading" class="loading">{{ $t('common.loading') }}</div>
+    <BaseSpinner v-if="loading" class="spinner" />
+
     <template v-else-if="skill">
-      <div class="header">
-        <h1>{{ skill.name }} <span class="ver">v{{ skill.version }}</span></h1>
-        <div>
-          <router-link v-if="auth.isAdmin" :to="`/skills/${skill.id}/edit`" class="btn-primary">{{ $t('provider.edit') }}</router-link>
-        </div>
-      </div>
+      <BasePageHeader :title="skill.name" :description="'v' + skill.version">
+        <template #actions>
+          <BaseButton variant="primary" size="sm" @click="router.push(`/skills/${skill.id}/edit`)">
+            {{ $t('provider.edit') }}
+          </BaseButton>
+        </template>
+      </BasePageHeader>
 
-      <div class="info-grid">
-        <div class="info-item">
-          <span class="label">{{ $t('registry.skills.type') }}</span>
-          <span class="value">{{ skill.type || '-' }}</span>
+      <BaseCard noPadding class="info-card">
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-item-label">{{ $t('registry.skills.type') }}</span>
+            <span class="info-item-value">{{ skill.type || '-' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-item-label">{{ $t('registry.skills.status') }}</span>
+            <span class="info-item-value">
+              <BaseBadge :variant="badgeVariant(skill.status)">{{ $t('registry.skills.statuses.' + skill.status) }}</BaseBadge>
+            </span>
+          </div>
+          <div class="info-item" v-if="skill.description">
+            <span class="info-item-label">{{ $t('registry.skills.description') }}</span>
+            <span class="info-item-value">{{ skill.description }}</span>
+          </div>
+          <div class="info-item" v-if="skill.publishNote">
+            <span class="info-item-label">{{ $t('registry.skills.publishNote') }}</span>
+            <span class="info-item-value">{{ skill.publishNote }}</span>
+          </div>
         </div>
-        <div class="info-item">
-          <span class="label">{{ $t('registry.skills.status') }}</span>
-          <span class="value"><span :class="'badge badge-' + skill.status">{{ $t('registry.skills.statuses.' + skill.status) }}</span></span>
-        </div>
-        <div class="info-item" v-if="skill.description">
-          <span class="label">{{ $t('registry.skills.description') }}</span>
-          <span class="value">{{ skill.description }}</span>
-        </div>
-        <div class="info-item" v-if="skill.publishNote">
-          <span class="label">{{ $t('registry.skills.publishNote') }}</span>
-          <span class="value">{{ skill.publishNote }}</span>
-        </div>
-      </div>
+      </BaseCard>
 
-      <div class="section">
-        <h2>{{ $t('registry.tools.title') }}</h2>
-        <div v-if="tools.length === 0" class="empty">{{ $t('registry.tools.empty') }}</div>
-        <table v-else class="table">
-          <thead><tr>
-            <th>{{ $t('registry.tools.name') }}</th>
-            <th>{{ $t('registry.tools.source') }}</th>
-            <th>{{ $t('registry.tools.status') }}</th>
-          </tr></thead>
+      <BaseCard class="section-card">
+        <template #header>
+          <h2 class="card-section-title">{{ $t('registry.tools.title') }}</h2>
+        </template>
+        <BaseEmpty v-if="tools.length === 0" :text="$t('registry.tools.empty')" />
+        <table v-else class="data-table">
+          <thead>
+            <tr>
+              <th>{{ $t('registry.tools.name') }}</th>
+              <th>{{ $t('registry.tools.source') }}</th>
+              <th>{{ $t('registry.tools.status') }}</th>
+            </tr>
+          </thead>
           <tbody>
             <tr v-for="t in tools" :key="t.id">
               <td>{{ t.name }}</td>
-              <td><span class="badge badge-source">{{ t.source }}</span></td>
-              <td><span class="badge" :class="t.enabled ? 'enabled' : 'disabled'">{{ t.enabled ? 'Enabled' : 'Disabled' }}</span></td>
+              <td><BaseBadge variant="info">{{ t.source }}</BaseBadge></td>
+              <td>
+                <BaseBadge :variant="t.enabled ? 'success' : 'neutral'">
+                  {{ t.enabled ? $t('registry.tools.enabled') : $t('registry.tools.disabled') }}
+                </BaseBadge>
+              </td>
             </tr>
           </tbody>
         </table>
-      </div>
+      </BaseCard>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
+import BasePageHeader from '../../components/ui/BasePageHeader.vue'
+import BaseButton from '../../components/ui/BaseButton.vue'
+import BaseBadge from '../../components/ui/BaseBadge.vue'
+import BaseCard from '../../components/ui/BaseCard.vue'
+import BaseSpinner from '../../components/ui/BaseSpinner.vue'
+import BaseEmpty from '../../components/ui/BaseEmpty.vue'
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { skillApi, toolApi } from '../../api/registry'
 import type { Skill, ToolDef } from '../../api/registry'
 import { useToast } from '../../composables/useToast'
 import { useI18n } from 'vue-i18n'
-import { useAuthStore } from '../../stores/auth'
-
 const { t } = useI18n()
 const { show } = useToast()
 const route = useRoute()
 const router = useRouter()
-const auth = useAuthStore()
 
 const loading = ref(true)
 const skill = ref<Skill | null>(null)
 const tools = ref<ToolDef[]>([])
+
+function badgeVariant(status: string): 'success' | 'danger' | 'warning' | 'info' | 'neutral' {
+  const map: Record<string, 'success' | 'danger' | 'warning' | 'info' | 'neutral'> = {
+    draft: 'neutral',
+    published: 'success',
+    deprecated: 'warning',
+    retired: 'danger',
+  }
+  return map[status] || 'neutral'
+}
 
 onMounted(async () => {
   try {
@@ -87,25 +114,68 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.loading { color: #666; padding: 20px; text-align: center; }
-.empty { text-align: center; padding: 20px; color: #666; font-size: 13px; }
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.ver { font-size: 14px; color: #999; font-weight: 400; }
-.info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 24px; }
-.info-item { background: white; padding: 12px 16px; border-radius: 8px; }
-.label { display: block; font-size: 11px; color: #888; text-transform: uppercase; margin-bottom: 4px; }
-.value { font-size: 14px; }
-.section { margin-top: 16px; }
-.section h2 { font-size: 16px; margin-bottom: 12px; }
-.table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
-.table th, .table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 13px; }
-.badge { padding: 2px 8px; border-radius: 4px; font-size: 12px; }
-.badge-draft { background: #eee; color: #666; }
-.badge-published { background: #e8f5e9; color: #2e7d32; }
-.badge-deprecated { background: #fff3e0; color: #e65100; }
-.badge-retired { background: #ffebee; color: #c62828; }
-.badge-source { background: #e8eaf6; color: #283593; }
-.badge.enabled { background: #e8f5e9; color: #2e7d32; }
-.badge.disabled { background: #eee; color: #666; }
-.btn-primary { padding: 8px 16px; background: #1976d2; color: white; text-decoration: none; border-radius: 4px; }
+.spinner {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-8);
+}
+.info-card {
+  margin-bottom: var(--space-5);
+}
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+  padding: var(--space-5);
+}
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.info-item-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--color-foreground-secondary);
+  letter-spacing: 0.5px;
+}
+.info-item-value {
+  font-size: 0.875rem;
+  color: var(--color-foreground);
+}
+.section-card {
+  margin-bottom: var(--space-5);
+}
+.card-section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-foreground);
+  margin: 0;
+}
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.data-table th {
+  text-transform: uppercase;
+  font-size: 0.857rem;
+  color: var(--color-foreground-secondary);
+  font-weight: 600;
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+.data-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.875rem;
+  color: var(--color-foreground);
+}
+.data-table tbody tr:hover {
+  background: var(--color-bg-muted);
+}
+.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
 </style>

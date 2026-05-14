@@ -28,9 +28,14 @@ public class OpenAICompatibleAdapter implements ProviderAdapter {
     @Override
     public boolean checkHealth(Provider provider) {
         try {
-            HttpRequest request = baseRequest(provider).build();
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            return response.statusCode() == 200;
+            String baseUrl = parseBaseUrl(provider).replaceAll("/+$", "");
+            HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/"))
+                .timeout(java.time.Duration.ofSeconds(10))
+                .GET()
+                .build();
+            httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+            return true; // server responded => reachable
         } catch (Exception e) {
             return false;
         }
@@ -39,7 +44,7 @@ public class OpenAICompatibleAdapter implements ProviderAdapter {
     @Override
     public List<String> fetchModels(Provider provider) {
         try {
-            HttpRequest request = baseRequest(provider).build();
+            HttpRequest request = modelListRequest(provider).build();
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) return List.of();
 
@@ -58,8 +63,10 @@ public class OpenAICompatibleAdapter implements ProviderAdapter {
         }
     }
 
-    private HttpRequest.Builder baseRequest(Provider provider) {
+    private HttpRequest.Builder modelListRequest(Provider provider) {
         String baseUrl = parseBaseUrl(provider);
+        // Strip trailing slashes and /v1 so we don't double up when appending /v1/models
+        baseUrl = baseUrl.replaceAll("/+$", "").replaceAll("/v1$", "");
         HttpRequest.Builder builder = HttpRequest.newBuilder()
             .uri(URI.create(baseUrl + "/v1/models"))
             .timeout(java.time.Duration.ofSeconds(10))

@@ -4,6 +4,7 @@ export interface Provider {
   type: 'openai_compatible' | 'anthropic' | 'vllm' | 'ollama' | 'custom'
   status: 'enabled' | 'disabled' | 'error'
   healthStatus: string
+  configJson: string
   createdAt: string
   updatedAt: string
 }
@@ -36,4 +37,7 @@ export interface User {
   username: string
   displayName: string | null
   role: 'admin' | 'viewer'
+  status: 'active' | 'disabled'
+  createdAt: string
+  updatedAt: string
 }

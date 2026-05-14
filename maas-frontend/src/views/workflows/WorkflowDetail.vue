@@ -1,104 +1,144 @@
 <template>
   <div>
-    <div class="header">
-      <h1>{{ workflow?.name ?? $t('workflow.detail') }}</h1>
-      <div class="header-actions" v-if="workflow">
-        <router-link :to="`/workflows/${workflow.id}/edit`" class="btn-primary" v-if="auth.isAdmin">{{ $t('workflow.edit') }}</router-link>
-        <router-link :to="`/workflows/${workflow.id}/executions`" class="btn-sm">{{ $t('workflow.executions') }}</router-link>
-      </div>
-    </div>
+    <BaseSpinner v-if="loading" class="spinner" />
 
-    <div v-if="loading" class="loading">{{ $t('common.loading') }}</div>
+    <template v-else-if="workflow">
+      <BasePageHeader :title="workflow.name ?? $t('workflow.detail')">
+        <template #actions>
+          <BaseButton variant="primary" size="sm" @click="router.push(`/workflows/${workflow.id}/edit`)">{{ $t('workflow.edit') }}</BaseButton>
+          <BaseButton variant="secondary" size="sm" @click="router.push(`/workflows/${workflow.id}/executions`)">{{ $t('workflow.executions') }}</BaseButton>
+        </template>
+      </BasePageHeader>
 
-    <div v-else-if="workflow" class="detail">
-      <div class="info-grid">
-        <div class="info-item">
-          <label>{{ $t('workflow.name') }}</label>
-          <span>{{ workflow.name }}</span>
+      <BaseCard noPadding class="info-card">
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-item-label">{{ $t('workflow.name') }}</span>
+            <span class="info-item-value">{{ workflow.name }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-item-label">{{ $t('workflow.description') }}</span>
+            <span class="info-item-value">{{ workflow.description || '-' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-item-label">{{ $t('workflow.status') }}</span>
+            <span class="info-item-value">
+              <BaseBadge :variant="statusVariant(workflow.status)">{{ $t('workflow.statuses.' + workflow.status) }}</BaseBadge>
+            </span>
+          </div>
+          <div class="info-item">
+            <span class="info-item-label">{{ $t('workflow.version') }}</span>
+            <span class="info-item-value">{{ workflow.latestVersion ?? '-' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-item-label">{{ $t('workflow.lastRun') }}</span>
+            <span class="info-item-value">
+              <BaseBadge v-if="workflow.lastRunStatus" :variant="runStatusVariant(workflow.lastRunStatus)">
+                {{ $t('workflow.runStatuses.' + workflow.lastRunStatus) }}
+              </BaseBadge>
+              <span v-else class="muted-text">-</span>
+            </span>
+          </div>
         </div>
-        <div class="info-item">
-          <label>{{ $t('workflow.description') }}</label>
-          <span>{{ workflow.description || '-' }}</span>
-        </div>
-        <div class="info-item">
-          <label>{{ $t('workflow.status') }}</label>
-          <span :class="'badge badge-' + workflow.status">{{ $t('workflow.statuses.' + workflow.status) }}</span>
-        </div>
-        <div class="info-item">
-          <label>{{ $t('workflow.version') }}</label>
-          <span>{{ workflow.latestVersion ?? '-' }}</span>
-        </div>
-        <div class="info-item">
-          <label>{{ $t('workflow.lastRun') }}</label>
-          <span v-if="workflow.lastRunStatus" :class="'badge badge-run-' + workflow.lastRunStatus">
-            {{ $t('workflow.runStatuses.' + workflow.lastRunStatus) }}
-          </span>
-          <span v-else class="muted">-</span>
-        </div>
-      </div>
+      </BaseCard>
 
-      <section class="section">
-        <h2>{{ $t('workflow.versions') }}</h2>
-        <div v-if="versions.length === 0" class="empty-section">{{ $t('workflow.noVersions') }}</div>
-        <table v-else class="table">
-          <thead><tr>
-            <th>{{ $t('workflow.version') }}</th>
-            <th>{{ $t('workflow.status') }}</th>
-            <th>{{ $t('workflow.createdAt') }}</th>
-          </tr></thead>
+      <BaseCard class="section-card">
+        <template #header>
+          <h2 class="card-section-title">{{ $t('workflow.versions') }}</h2>
+        </template>
+        <BaseEmpty v-if="versions.length === 0" :text="$t('workflow.noVersions')" />
+        <table v-else class="data-table">
+          <thead>
+            <tr>
+              <th>{{ $t('workflow.version') }}</th>
+              <th>{{ $t('workflow.status') }}</th>
+              <th>{{ $t('workflow.createdAt') }}</th>
+            </tr>
+          </thead>
           <tbody>
             <tr v-for="v in versions" :key="v.id">
               <td>v{{ v.version }}</td>
-              <td><span :class="'badge badge-' + v.status">{{ $t('workflow.statuses.' + v.status) }}</span></td>
-              <td class="muted">{{ formatTime(v.createdAt) }}</td>
+              <td>
+                <BaseBadge :variant="statusVariant(v.status)">{{ $t('workflow.statuses.' + v.status) }}</BaseBadge>
+              </td>
+              <td class="muted-text">{{ formatTime(v.createdAt) }}</td>
             </tr>
           </tbody>
         </table>
-      </section>
+      </BaseCard>
 
-      <section class="section">
-        <h2>{{ $t('workflow.recentExecutions') }}</h2>
-        <div v-if="executions.length === 0" class="empty-section">{{ $t('workflow.noExecutions') }}</div>
-        <table v-else class="table">
-          <thead><tr>
-            <th>{{ $t('workflow.id') }}</th>
-            <th>{{ $t('workflow.status') }}</th>
-            <th>{{ $t('workflow.startedAt') }}</th>
-            <th>{{ $t('workflow.finishedAt') }}</th>
-          </tr></thead>
+      <BaseCard class="section-card">
+        <template #header>
+          <h2 class="card-section-title">{{ $t('workflow.recentExecutions') }}</h2>
+        </template>
+        <BaseEmpty v-if="executions.length === 0" :text="$t('workflow.noExecutions')" />
+        <table v-else class="data-table">
+          <thead>
+            <tr>
+              <th>{{ $t('workflow.id') }}</th>
+              <th>{{ $t('workflow.status') }}</th>
+              <th>{{ $t('workflow.startedAt') }}</th>
+              <th>{{ $t('workflow.finishedAt') }}</th>
+            </tr>
+          </thead>
           <tbody>
-            <tr v-for="e in executions" :key="e.id" class="clickable" @click="router.push('/executions/' + e.id)">
-              <td class="mono">{{ e.id.slice(0, 8) }}...</td>
-              <td><span :class="'badge badge-run-' + e.status">{{ $t('workflow.runStatuses.' + e.status) }}</span></td>
-              <td class="muted">{{ e.startedAt ? formatTime(e.startedAt) : '-' }}</td>
-              <td class="muted">{{ e.finishedAt ? formatTime(e.finishedAt) : '-' }}</td>
+            <tr v-for="e in executions" :key="e.id" class="clickable-row" @click="router.push('/executions/' + e.id)">
+              <td class="text-mono">{{ e.id.slice(0, 8) }}...</td>
+              <td>
+                <BaseBadge :variant="runStatusVariant(e.status)">{{ $t('workflow.runStatuses.' + e.status) }}</BaseBadge>
+              </td>
+              <td class="muted-text">{{ e.startedAt ? formatTime(e.startedAt) : '-' }}</td>
+              <td class="muted-text">{{ e.finishedAt ? formatTime(e.finishedAt) : '-' }}</td>
             </tr>
           </tbody>
         </table>
-      </section>
-    </div>
+      </BaseCard>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
+import BasePageHeader from '../../components/ui/BasePageHeader.vue'
+import BaseButton from '../../components/ui/BaseButton.vue'
+import BaseBadge from '../../components/ui/BaseBadge.vue'
+import BaseCard from '../../components/ui/BaseCard.vue'
+import BaseSpinner from '../../components/ui/BaseSpinner.vue'
+import BaseEmpty from '../../components/ui/BaseEmpty.vue'
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { workflowApi } from '../../api/workflows'
 import type { Workflow, WorkflowVersion, Execution } from '../../api/workflows'
 import { useToast } from '../../composables/useToast'
 import { useI18n } from 'vue-i18n'
-import { useAuthStore } from '../../stores/auth'
-
 const { t } = useI18n()
 const { show } = useToast()
 const route = useRoute()
 const router = useRouter()
-const auth = useAuthStore()
 
 const loading = ref(true)
 const workflow = ref<Workflow | null>(null)
 const versions = ref<WorkflowVersion[]>([])
 const executions = ref<Execution[]>([])
+
+function statusVariant(status: string): 'success' | 'danger' | 'warning' | 'info' | 'neutral' {
+  const map: Record<string, 'success' | 'danger' | 'warning' | 'info' | 'neutral'> = {
+    draft: 'neutral',
+    published: 'success',
+    archived: 'warning',
+  }
+  return map[status] || 'neutral'
+}
+
+function runStatusVariant(status: string): 'success' | 'danger' | 'warning' | 'info' | 'neutral' {
+  const map: Record<string, 'success' | 'danger' | 'warning' | 'info' | 'neutral'> = {
+    completed: 'success',
+    failed: 'danger',
+    running: 'info',
+    cancelled: 'neutral',
+    pending: 'warning',
+  }
+  return map[status] || 'neutral'
+}
 
 onMounted(async () => {
   const id = route.params.id as string
@@ -124,31 +164,82 @@ function formatTime(ts: string) {
 </script>
 
 <style scoped>
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.loading { color: #666; padding: 20px; text-align: center; }
-.detail { max-width: 960px; }
-.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; background: white; padding: 20px; border-radius: 8px; margin-bottom: 24px; }
-.info-item label { display: block; font-size: 12px; color: #999; margin-bottom: 4px; }
-.info-item span { font-size: 14px; }
-.section { margin-bottom: 24px; }
-.section h2 { font-size: 16px; margin-bottom: 12px; }
-.empty-section { text-align: center; padding: 24px; color: #999; background: white; border-radius: 8px; }
-.table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
-.table th, .table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 13px; }
-.muted { color: #999; font-size: 12px; }
-.mono { font-family: monospace; font-size: 12px; }
-.badge { padding: 2px 8px; border-radius: 4px; font-size: 12px; white-space: nowrap; }
-.badge-draft { background: #f3f4f6; color: #6b7280; }
-.badge-published { background: #e8f5e9; color: #2e7d32; }
-.badge-archived { background: #fef3c7; color: #92400e; }
-.badge-run-completed { background: #e8f5e9; color: #2e7d32; }
-.badge-run-failed { background: #ffebee; color: #c62828; }
-.badge-run-running { background: #e3f2fd; color: #1565c0; }
-.badge-run-cancelled { background: #f3f4f6; color: #6b7280; }
-.badge-run-pending { background: #fef3c7; color: #92400e; }
-.btn-primary { padding: 8px 16px; background: #1976d2; color: white; text-decoration: none; border-radius: 4px; font-size: 13px; }
-.btn-sm { padding: 4px 8px; background: #e3f2fd; color: #1976d2; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; font-size: 13px; }
-.clickable { cursor: pointer; }
-.clickable:hover { background: #f0f7ff; }
-.header-actions { display: flex; gap: 8px; }
+.spinner {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-8);
+}
+.info-card {
+  margin-bottom: var(--space-5);
+}
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+  padding: var(--space-5);
+}
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.info-item-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--color-foreground-secondary);
+  letter-spacing: 0.5px;
+}
+.info-item-value {
+  font-size: 0.875rem;
+  color: var(--color-foreground);
+}
+.section-card {
+  margin-bottom: var(--space-5);
+}
+.card-section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-foreground);
+  margin: 0;
+}
+.muted-text {
+  color: var(--color-foreground-secondary);
+  font-size: 0.8rem;
+}
+.text-mono {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+.clickable-row {
+  cursor: pointer;
+}
+.clickable-row:hover {
+  background: var(--color-bg-muted);
+}
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.data-table th {
+  text-transform: uppercase;
+  font-size: 0.857rem;
+  color: var(--color-foreground-secondary);
+  font-weight: 600;
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+.data-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.875rem;
+  color: var(--color-foreground);
+}
+.data-table tbody tr:hover {
+  background: var(--color-bg-muted);
+}
+.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
 </style>

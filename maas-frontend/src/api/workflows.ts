@@ -77,6 +77,16 @@ export const workflowApi = {
     client.get<any, ApiResponse<ExecutionPage>>(`/workflows/${id}/executions`, { params }),
 }
 
+export interface ExecutionTrend {
+  date: string
+  totalCount: number
+  completedCount: number
+  failedCount: number
+  runningCount: number
+  pendingCount: number
+  cancelledCount: number
+}
+
 export interface ExecutionListParams {
   page?: number
   size?: number
@@ -88,4 +98,5 @@ export interface ExecutionListParams {
 export const executionApi = {
   list: (params?: ExecutionListParams) => client.get<any, ApiResponse<ExecutionPage>>('/executions', { params }),
   get: (id: string) => client.get<any, ApiResponse<Execution>>(`/executions/${id}`),
+  trends: (range = 'week') => client.get<any, ApiResponse<ExecutionTrend[]>>('/executions/trends', { params: { range } }),
 }

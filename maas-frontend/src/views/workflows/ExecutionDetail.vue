@@ -1,35 +1,44 @@
 <template>
   <div>
-    <div class="header">
-      <h1>{{ $t('workflow.executionDetail') }}</h1>
-      <router-link :to="`/workflows/${execution?.workflowId}`" class="btn-sm">{{ $t('workflow.back') }}</router-link>
-    </div>
+    <BaseSpinner v-if="loading" class="spinner" />
 
-    <div v-if="loading" class="loading">{{ $t('common.loading') }}</div>
+    <template v-else-if="execution">
+      <BasePageHeader :title="$t('workflow.executionDetail')">
+        <template #actions>
+          <BaseButton size="sm" variant="ghost" @click="router.push(`/workflows/${execution.workflowId}`)">
+            {{ $t('workflow.back') }}
+          </BaseButton>
+        </template>
+      </BasePageHeader>
 
-    <div v-else-if="execution" class="detail">
-      <div class="info-grid">
-        <div class="info-item">
-          <label>{{ $t('workflow.status') }}</label>
-          <span :class="'badge badge-run-' + execution.status">{{ $t('workflow.runStatuses.' + execution.status) }}</span>
+      <BaseCard noPadding class="info-card">
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-item-label">{{ $t('workflow.status') }}</span>
+            <span class="info-item-value">
+              <BaseBadge :variant="runStatusVariant(execution.status)">{{ $t('workflow.runStatuses.' + execution.status) }}</BaseBadge>
+            </span>
+          </div>
+          <div class="info-item">
+            <span class="info-item-label">{{ $t('workflow.triggerType') }}</span>
+            <span class="info-item-value">{{ execution.triggerType || '-' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-item-label">{{ $t('workflow.startedAt') }}</span>
+            <span class="info-item-value">{{ execution.startedAt ? formatTime(execution.startedAt) : '-' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-item-label">{{ $t('workflow.finishedAt') }}</span>
+            <span class="info-item-value">{{ execution.finishedAt ? formatTime(execution.finishedAt) : '-' }}</span>
+          </div>
         </div>
-        <div class="info-item">
-          <label>{{ $t('workflow.triggerType') }}</label>
-          <span>{{ execution.triggerType || '-' }}</span>
-        </div>
-        <div class="info-item">
-          <label>{{ $t('workflow.startedAt') }}</label>
-          <span>{{ execution.startedAt ? formatTime(execution.startedAt) : '-' }}</span>
-        </div>
-        <div class="info-item">
-          <label>{{ $t('workflow.finishedAt') }}</label>
-          <span>{{ execution.finishedAt ? formatTime(execution.finishedAt) : '-' }}</span>
-        </div>
-      </div>
+      </BaseCard>
 
-      <section class="section">
-        <h2>{{ $t('workflow.steps') }} ({{ execution.stepExecutions.length }})</h2>
-        <table class="table">
+      <BaseCard class="section-card">
+        <template #header>
+          <h2 class="card-section-title">{{ $t('workflow.steps') }} ({{ execution.stepExecutions.length }})</h2>
+        </template>
+        <table class="data-table">
           <thead>
             <tr>
               <th>{{ $t('workflow.stepId') }}</th>
@@ -42,23 +51,30 @@
           </thead>
           <tbody>
             <tr v-for="s in execution.stepExecutions" :key="s.id">
-              <td class="mono">{{ s.stepId }}</td>
-              <td><span class="step-type">{{ s.stepType }}</span></td>
-              <td><span :class="'badge badge-step-' + s.status">{{ $t('workflow.stepStatuses.' + s.status) }}</span></td>
+              <td class="text-mono">{{ s.stepId }}</td>
+              <td><span class="step-type-badge">{{ s.stepType }}</span></td>
+              <td>
+                <BaseBadge :variant="stepStatusVariant(s.status)">{{ $t('workflow.stepStatuses.' + s.status) }}</BaseBadge>
+              </td>
               <td class="cell-json">{{ truncate(s.input, 60) }}</td>
               <td class="cell-json">{{ truncate(s.output, 60) }}</td>
               <td class="cell-error">{{ s.errorMessage ? truncate(s.errorMessage, 40) : '-' }}</td>
             </tr>
           </tbody>
         </table>
-      </section>
-    </div>
+      </BaseCard>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
+import BasePageHeader from '../../components/ui/BasePageHeader.vue'
+import BaseButton from '../../components/ui/BaseButton.vue'
+import BaseBadge from '../../components/ui/BaseBadge.vue'
+import BaseCard from '../../components/ui/BaseCard.vue'
+import BaseSpinner from '../../components/ui/BaseSpinner.vue'
 import { ref, onMounted, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { executionApi } from '../../api/workflows'
 import type { Execution } from '../../api/workflows'
 import { useToast } from '../../composables/useToast'
@@ -67,11 +83,34 @@ import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
 const { show } = useToast()
 const route = useRoute()
+const router = useRouter()
 
 const loading = ref(true)
 const execution = ref<Execution | null>(null)
 
 let timer: ReturnType<typeof setInterval> | null = null
+
+function runStatusVariant(status: string): 'success' | 'danger' | 'warning' | 'info' | 'neutral' {
+  const map: Record<string, 'success' | 'danger' | 'warning' | 'info' | 'neutral'> = {
+    completed: 'success',
+    failed: 'danger',
+    running: 'info',
+    cancelled: 'neutral',
+    pending: 'warning',
+  }
+  return map[status] || 'neutral'
+}
+
+function stepStatusVariant(status: string): 'success' | 'danger' | 'warning' | 'info' | 'neutral' {
+  const map: Record<string, 'success' | 'danger' | 'warning' | 'info' | 'neutral'> = {
+    completed: 'success',
+    failed: 'danger',
+    running: 'info',
+    pending: 'neutral',
+    skipped: 'neutral',
+  }
+  return map[status] || 'neutral'
+}
 
 async function fetch() {
   try {
@@ -114,29 +153,97 @@ function truncate(s: string | null, max: number) {
 </script>
 
 <style scoped>
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.loading { color: #666; padding: 20px; text-align: center; }
-.info-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; background: white; padding: 20px; border-radius: 8px; margin-bottom: 24px; }
-.info-item label { display: block; font-size: 12px; color: #999; margin-bottom: 4px; }
-.info-item span { font-size: 14px; }
-.section { margin-bottom: 24px; }
-.section h2 { font-size: 16px; margin-bottom: 12px; }
-.table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
-.table th, .table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 13px; }
-.mono { font-family: monospace; font-size: 12px; }
-.cell-json { font-family: monospace; font-size: 11px; color: #666; max-width: 200px; }
-.cell-error { font-family: monospace; font-size: 11px; color: #c62828; max-width: 150px; }
-.step-type { padding: 2px 8px; background: #f3f4f6; border-radius: 4px; font-size: 12px; }
-.badge { padding: 2px 8px; border-radius: 4px; font-size: 12px; white-space: nowrap; }
-.badge-run-completed { background: #e8f5e9; color: #2e7d32; }
-.badge-run-failed { background: #ffebee; color: #c62828; }
-.badge-run-running { background: #e3f2fd; color: #1565c0; }
-.badge-run-cancelled { background: #f3f4f6; color: #6b7280; }
-.badge-run-pending { background: #fef3c7; color: #92400e; }
-.badge-step-completed { background: #e8f5e9; color: #2e7d32; }
-.badge-step-failed { background: #ffebee; color: #c62828; }
-.badge-step-running { background: #e3f2fd; color: #1565c0; }
-.badge-step-pending { background: #f3f4f6; color: #6b7280; }
-.badge-step-skipped { background: #f3f4f6; color: #9e9e9e; }
-.btn-sm { padding: 6px 12px; background: #e3f2fd; color: #1976d2; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; font-size: 13px; }
+.spinner {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-8);
+}
+.info-card {
+  margin-bottom: var(--space-5);
+}
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+  padding: var(--space-5);
+}
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.info-item-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--color-foreground-secondary);
+  letter-spacing: 0.5px;
+}
+.info-item-value {
+  font-size: 0.875rem;
+  color: var(--color-foreground);
+}
+.section-card {
+  margin-bottom: var(--space-5);
+}
+.card-section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-foreground);
+  margin: 0;
+}
+.step-type-badge {
+  padding: 2px 8px;
+  background: var(--color-bg-muted);
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  color: var(--color-foreground);
+}
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.data-table th {
+  text-transform: uppercase;
+  font-size: 0.857rem;
+  color: var(--color-foreground-secondary);
+  font-weight: 600;
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+.data-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.875rem;
+  color: var(--color-foreground);
+}
+.data-table tbody tr:hover {
+  background: var(--color-bg-muted);
+}
+.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.text-mono {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+.cell-json {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--color-foreground-secondary);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cell-error {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--color-danger);
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 </style>

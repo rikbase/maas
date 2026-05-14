@@ -1,16 +1,18 @@
 <template>
   <div>
-    <div class="header">
-      <h1>{{ $t('workflow.title') }}</h1>
-      <router-link v-if="auth.isAdmin" to="/workflows/new" class="btn-primary">{{ $t('workflow.add') }}</router-link>
-    </div>
+    <BasePageHeader :title="$t('workflow.title')">
+      <template #actions>
+        <BaseButton variant="primary" @click="router.push('/workflows/new')">
+          {{ $t('workflow.add') }}
+        </BaseButton>
+      </template>
+    </BasePageHeader>
 
-    <div v-if="loading" class="loading">{{ $t('common.loading') }}</div>
-    <div v-else-if="workflows.length === 0" class="empty">
-      <p>{{ $t('workflow.empty') }}</p>
-      <p class="hint">{{ $t('workflow.emptyHint') }}</p>
-    </div>
-    <table v-else class="table">
+    <BaseSpinner v-if="loading" class="spinner" />
+
+    <BaseEmpty v-else-if="workflows.length === 0" :text="$t('workflow.empty')" />
+
+    <table v-else class="data-table">
       <thead>
         <tr>
           <th>{{ $t('workflow.name') }}</th>
@@ -18,29 +20,31 @@
           <th>{{ $t('workflow.version') }}</th>
           <th>{{ $t('workflow.lastRun') }}</th>
           <th>{{ $t('workflow.updatedAt') }}</th>
-          <th v-if="auth.isAdmin">{{ $t('workflow.actions') }}</th>
+          <th>{{ $t('workflow.actions') }}</th>
         </tr>
       </thead>
       <tbody>
         <tr v-for="w in workflows" :key="w.id">
           <td>
-            <router-link :to="`/workflows/${w.id}`" class="link">{{ w.name }}</router-link>
-            <span v-if="w.description" class="desc"> — {{ w.description }}</span>
+            <router-link :to="`/workflows/${w.id}`" class="data-table-link">{{ w.name }}</router-link>
+            <span v-if="w.description" class="data-table-desc">&mdash; {{ w.description }}</span>
           </td>
-          <td><span :class="'badge badge-' + w.status">{{ $t('workflow.statuses.' + w.status) }}</span></td>
+          <td>
+            <BaseBadge :variant="statusVariant(w.status)">{{ $t('workflow.statuses.' + w.status) }}</BaseBadge>
+          </td>
           <td>{{ w.latestVersion ?? '-' }}</td>
           <td>
-            <span v-if="w.lastRunStatus" :class="'badge badge-run-' + w.lastRunStatus">
+            <BaseBadge v-if="w.lastRunStatus" :variant="runStatusVariant(w.lastRunStatus)">
               {{ $t('workflow.runStatuses.' + w.lastRunStatus) }}
-            </span>
-            <span v-else class="muted">-</span>
+            </BaseBadge>
+            <span v-else class="muted-text">-</span>
           </td>
-          <td class="muted">{{ formatTime(w.updatedAt) }}</td>
-          <td v-if="auth.isAdmin" class="actions">
-            <router-link :to="`/workflows/${w.id}/edit`" class="btn-sm">{{ $t('workflow.edit') }}</router-link>
-            <button @click="publishWorkflow(w.id)" class="btn-sm btn-ok">{{ $t('workflow.publish') }}</button>
-            <button @click="executeWorkflow(w.id)" class="btn-sm">{{ $t('workflow.execute') }}</button>
-            <button @click="deleteWorkflow(w.id)" class="btn-sm btn-danger">{{ $t('provider.delete') }}</button>
+          <td class="muted-text">{{ formatTime(w.updatedAt) }}</td>
+          <td class="action-cell">
+            <BaseButton size="sm" variant="ghost" @click="router.push(`/workflows/${w.id}/edit`)">{{ $t('workflow.edit') }}</BaseButton>
+            <BaseButton v-if="w.status !== 'published'" size="sm" variant="ghost" @click="publishWorkflow(w.id)">{{ $t('workflow.publish') }}</BaseButton>
+            <BaseButton v-if="w.status === 'published'" size="sm" variant="ghost" @click="executeWorkflow(w.id)">{{ $t('workflow.execute') }}</BaseButton>
+            <BaseButton size="sm" variant="danger" @click="deleteWorkflow(w.id)">{{ $t('common.delete') }}</BaseButton>
           </td>
         </tr>
       </tbody>
@@ -49,19 +53,46 @@
 </template>
 
 <script setup lang="ts">
+import BasePageHeader from '../../components/ui/BasePageHeader.vue'
+import BaseButton from '../../components/ui/BaseButton.vue'
+import BaseBadge from '../../components/ui/BaseBadge.vue'
+import BaseSpinner from '../../components/ui/BaseSpinner.vue'
+import BaseEmpty from '../../components/ui/BaseEmpty.vue'
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { workflowApi } from '../../api/workflows'
 import type { Workflow } from '../../api/workflows'
 import { useToast } from '../../composables/useToast'
 import { useI18n } from 'vue-i18n'
-import { useAuthStore } from '../../stores/auth'
+import { useConfirm } from '../../composables/useConfirm'
 
 const { t } = useI18n()
 const { show } = useToast()
-const auth = useAuthStore()
+const router = useRouter()
+const { confirm: confirmDialog } = useConfirm()
 
 const loading = ref(true)
 const workflows = ref<Workflow[]>([])
+
+function statusVariant(status: string): 'success' | 'danger' | 'warning' | 'info' | 'neutral' {
+  const map: Record<string, 'success' | 'danger' | 'warning' | 'info' | 'neutral'> = {
+    draft: 'neutral',
+    published: 'success',
+    archived: 'warning',
+  }
+  return map[status] || 'neutral'
+}
+
+function runStatusVariant(status: string): 'success' | 'danger' | 'warning' | 'info' | 'neutral' {
+  const map: Record<string, 'success' | 'danger' | 'warning' | 'info' | 'neutral'> = {
+    completed: 'success',
+    failed: 'danger',
+    running: 'info',
+    cancelled: 'neutral',
+    pending: 'warning',
+  }
+  return map[status] || 'neutral'
+}
 
 onMounted(async () => {
   try {
@@ -95,7 +126,7 @@ async function executeWorkflow(id: string) {
 }
 
 async function deleteWorkflow(id: string) {
-  if (!confirm(t('workflow.deleteConfirm'))) return
+  if (!(await confirmDialog(t('workflow.deleteConfirm')))) return
   try {
     await workflowApi.delete(id)
     workflows.value = workflows.value.filter(w => w.id !== id)
@@ -111,27 +142,59 @@ function formatTime(ts: string) {
 </script>
 
 <style scoped>
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.loading { color: #666; padding: 20px; text-align: center; }
-.empty { text-align: center; padding: 40px; color: #666; }
-.hint { font-size: 13px; color: #999; margin-top: 8px; }
-.table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
-.table th, .table td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
-.actions { display: flex; gap: 4px; flex-wrap: wrap; }
-.link { color: #1976d2; text-decoration: none; font-weight: 500; }
-.link:hover { text-decoration: underline; }
-.desc { color: #666; font-size: 12px; }
-.muted { color: #999; font-size: 12px; }
-.badge { padding: 2px 8px; border-radius: 4px; font-size: 12px; white-space: nowrap; }
-.badge-draft { background: #f3f4f6; color: #6b7280; }
-.badge-published { background: #e8f5e9; color: #2e7d32; }
-.badge-archived { background: #fef3c7; color: #92400e; }
-.badge-run-completed { background: #e8f5e9; color: #2e7d32; }
-.badge-run-failed { background: #ffebee; color: #c62828; }
-.badge-run-running { background: #e3f2fd; color: #1565c0; }
-.badge-run-cancelled { background: #f3f4f6; color: #6b7280; }
-.btn-primary { padding: 8px 16px; background: #1976d2; color: white; text-decoration: none; border-radius: 4px; font-size: 13px; }
-.btn-sm { padding: 4px 8px; background: #e3f2fd; color: #1976d2; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; font-size: 13px; }
-.btn-danger { background: #ffebee; color: #c62828; }
-.btn-ok { background: #e8f5e9; color: #2e7d32; }
+.spinner {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-8);
+}
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.data-table th {
+  text-transform: uppercase;
+  font-size: 0.857rem;
+  color: var(--color-foreground-secondary);
+  font-weight: 600;
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+.data-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 0.875rem;
+  color: var(--color-foreground);
+}
+.data-table tbody tr:hover {
+  background: var(--color-bg-muted);
+}
+.data-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.data-table-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+.data-table-link:hover {
+  text-decoration: underline;
+}
+.data-table-desc {
+  color: var(--color-foreground-secondary);
+  font-size: 0.8rem;
+}
+.muted-text {
+  color: var(--color-foreground-secondary);
+  font-size: 0.8rem;
+}
+.action-cell {
+  display: flex;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+}
 </style>

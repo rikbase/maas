@@ -68,9 +68,4 @@ public class DifyController {
         return ResponseEntity.ok().headers(headers).body(html);
     }
 
-    @PostMapping("/{id}/login")
-    @PreAuthorize("hasRole('admin')")
-    public ApiResponse<DifyTestResult> login(@PathVariable UUID id) {
-        return ApiResponse.success(difyService.loginToDify(id));
-    }
 }

@@ -1,53 +1,93 @@
 <template>
-  <div class="detail-page">
-    <div v-if="loading" class="loading">{{ $t('common.loading') }}</div>
-    <div v-else-if="!tool" class="empty">{{ $t('registry.tools.notFound') }}</div>
+  <div>
+    <BaseSpinner v-if="loading" class="spinner" />
+
+    <BaseEmpty v-else-if="!tool" :text="$t('registry.tools.notFound')" />
+
     <template v-else>
-      <div class="header">
-        <router-link to="/tools" class="back">← {{ $t('workflow.back') }}</router-link>
-        <h1>{{ tool.name }}</h1>
-        <div class="header-actions" v-if="auth.isAdmin">
-          <router-link :to="`/tools/${tool.id}/edit`" class="btn btn-edit">{{ $t('provider.edit') }}</router-link>
-          <button @click="toggleTool" class="btn" :class="tool.enabled ? 'btn-warn' : 'btn-success'">
+      <router-link to="/tools" class="back-link">&larr; {{ $t('workflow.back') }}</router-link>
+
+      <BasePageHeader :title="tool.name">
+        <template #actions>
+          <BaseButton variant="primary" size="sm" @click="router.push(`/tools/${tool.id}/edit`)">{{ $t('provider.edit') }}</BaseButton>
+          <BaseButton size="sm" :variant="tool.enabled ? 'ghost' : 'ghost'" @click="toggleTool">
             {{ tool.enabled ? $t('security.rules.disable') : $t('security.rules.enable') }}
-          </button>
-          <button @click="deleteTool" class="btn btn-danger">{{ $t('provider.delete') }}</button>
+          </BaseButton>
+          <BaseButton size="sm" variant="danger" @click="deleteTool">{{ $t('provider.delete') }}</BaseButton>
+        </template>
+      </BasePageHeader>
+
+      <BaseCard noPadding class="info-card">
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-item-label">ID</span>
+            <span class="info-item-value text-mono">{{ tool.id }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-item-label">{{ $t('registry.tools.name') }}</span>
+            <span class="info-item-value">{{ tool.name }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-item-label">{{ $t('provider.description') }}</span>
+            <span class="info-item-value">{{ tool.description || '&mdash;' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-item-label">{{ $t('registry.tools.source') }}</span>
+            <span class="info-item-value"><BaseBadge variant="info">{{ tool.source }}</BaseBadge></span>
+          </div>
+          <div class="info-item">
+            <span class="info-item-label">{{ $t('registry.tools.sourceRef') }}</span>
+            <span class="info-item-value text-mono">{{ tool.sourceRef || '&mdash;' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-item-label">{{ $t('registry.tools.status') }}</span>
+            <span class="info-item-value">
+              <BaseBadge :variant="tool.enabled ? 'success' : 'neutral'">
+                {{ tool.enabled ? $t('registry.tools.enabled') : $t('registry.tools.disabled') }}
+              </BaseBadge>
+            </span>
+          </div>
+          <div class="info-item">
+            <span class="info-item-label">{{ $t('workflow.createdAt') }}</span>
+            <span class="info-item-value">{{ new Date(tool.createdAt).toLocaleString() }}</span>
+          </div>
+          <div class="info-item">
+            <span class="info-item-label">{{ $t('workflow.updatedAt') }}</span>
+            <span class="info-item-value">{{ new Date(tool.updatedAt).toLocaleString() }}</span>
+          </div>
         </div>
-      </div>
+      </BaseCard>
 
-      <div class="info-grid">
-        <div class="info-item"><span class="label">ID</span><span class="value mono">{{ tool.id }}</span></div>
-        <div class="info-item"><span class="label">{{ $t('registry.tools.name') }}</span><span class="value">{{ tool.name }}</span></div>
-        <div class="info-item"><span class="label">{{ $t('provider.description') }}</span><span class="value">{{ tool.description || '—' }}</span></div>
-        <div class="info-item"><span class="label">{{ $t('registry.tools.source') }}</span><span class="value"><span class="badge badge-source">{{ tool.source }}</span></span></div>
-        <div class="info-item"><span class="label">{{ $t('registry.tools.sourceRef') }}</span><span class="value mono">{{ tool.sourceRef || '—' }}</span></div>
-        <div class="info-item"><span class="label">{{ $t('registry.tools.status') }}</span><span class="value"><span class="badge" :class="tool.enabled ? 'enabled' : 'disabled'">{{ tool.enabled ? 'Enabled' : 'Disabled' }}</span></span></div>
-        <div class="info-item"><span class="label">{{ $t('workflow.createdAt') }}</span><span class="value">{{ new Date(tool.createdAt).toLocaleString() }}</span></div>
-        <div class="info-item"><span class="label">{{ $t('workflow.updatedAt') }}</span><span class="value">{{ new Date(tool.updatedAt).toLocaleString() }}</span></div>
-      </div>
-
-      <div class="section">
-        <h2>{{ $t('registry.tools.inputSchema') }}</h2>
+      <BaseCard>
+        <template #header>
+          <h2 class="card-section-title">{{ $t('registry.tools.inputSchema') }}</h2>
+        </template>
         <pre class="json-block">{{ formatJson(tool.inputSchema) }}</pre>
-      </div>
+      </BaseCard>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
+import BasePageHeader from '../../components/ui/BasePageHeader.vue'
+import BaseButton from '../../components/ui/BaseButton.vue'
+import BaseBadge from '../../components/ui/BaseBadge.vue'
+import BaseCard from '../../components/ui/BaseCard.vue'
+import BaseSpinner from '../../components/ui/BaseSpinner.vue'
+import BaseEmpty from '../../components/ui/BaseEmpty.vue'
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { toolApi } from '../../api/registry'
 import type { ToolDef } from '../../api/registry'
 import { useToast } from '../../composables/useToast'
 import { useI18n } from 'vue-i18n'
-import { useAuthStore } from '../../stores/auth'
+import { useConfirm } from '../../composables/useConfirm'
 
 const { t } = useI18n()
 const { show } = useToast()
 const route = useRoute()
 const router = useRouter()
-const auth = useAuthStore()
+const { confirm: confirmDialog } = useConfirm()
 
 const loading = ref(true)
 const tool = ref<ToolDef | null>(null)
@@ -79,7 +119,7 @@ async function toggleTool() {
 }
 
 async function deleteTool() {
-  if (!tool.value || !confirm(t('registry.tools.deleteConfirm'))) return
+  if (!tool.value || !(await confirmDialog(t('registry.tools.deleteConfirm')))) return
   try {
     await toolApi.delete(tool.value.id)
     show(t('registry.tools.deleted'))
@@ -91,27 +131,62 @@ async function deleteTool() {
 </script>
 
 <style scoped>
-.detail-page { max-width: 800px; margin: 0 auto; }
-.loading, .empty { text-align: center; padding: 40px; color: #666; }
-.header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
-.header h1 { margin: 0; font-size: 20px; flex: 1; }
-.back { color: #1976d2; text-decoration: none; font-size: 13px; }
-.header-actions { display: flex; gap: 6px; }
-.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-.info-item { display: flex; flex-direction: column; gap: 2px; }
-.label { font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; }
-.value { font-size: 14px; color: #333; }
-.mono { font-family: monospace; font-size: 12px; }
-.section { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-.section h2 { margin: 0 0 12px 0; font-size: 16px; }
-.json-block { background: #f5f5f5; padding: 12px; border-radius: 4px; font-size: 12px; overflow-x: auto; margin: 0; }
-.btn { padding: 6px 14px; border-radius: 4px; border: none; cursor: pointer; font-size: 12px; text-decoration: none; display: inline-block; }
-.btn-edit { background: #e3f2fd; color: #1976d2; }
-.btn-success { background: #e8f5e9; color: #2e7d32; }
-.btn-warn { background: #fff3e0; color: #e65100; }
-.btn-danger { background: #ffebee; color: #c62828; }
-.badge { padding: 2px 8px; border-radius: 4px; font-size: 12px; }
-.badge-source { background: #e8eaf6; color: #283593; }
-.enabled { background: #e8f5e9; color: #2e7d32; }
-.disabled { background: #eee; color: #666; }
+.spinner {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-8);
+}
+.back-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-size: 0.857rem;
+  display: inline-block;
+  margin-bottom: var(--space-1);
+}
+.back-link:hover {
+  text-decoration: underline;
+}
+.info-card {
+  margin-bottom: var(--space-5);
+}
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+  padding: var(--space-5);
+}
+.info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.info-item-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--color-foreground-secondary);
+  letter-spacing: 0.5px;
+}
+.info-item-value {
+  font-size: 0.875rem;
+  color: var(--color-foreground);
+}
+.text-mono {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+.card-section-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-foreground);
+  margin: 0;
+}
+.json-block {
+  background: var(--color-bg-muted);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  overflow-x: auto;
+  margin: 0;
+}
 </style>

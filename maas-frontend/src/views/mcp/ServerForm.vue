@@ -1,39 +1,38 @@
 <template>
   <div>
-    <h1>{{ isEdit ? $t('mcp.servers.editTitle') : $t('mcp.servers.addTitle') }}</h1>
-    <div v-if="loading" class="loading">{{ $t('common.loading') }}</div>
-    <form v-else @submit.prevent="save" class="form">
-      <div class="field">
-        <label>{{ $t('mcp.servers.name') }}</label>
-        <input v-model="form.name" required />
-      </div>
-      <div class="field">
-        <label>{{ $t('mcp.servers.description') }}</label>
-        <textarea v-model="form.description" rows="2"></textarea>
-      </div>
-      <div class="field">
-        <label>{{ $t('mcp.servers.transport') }}</label>
-        <select v-model="form.transport">
-          <option value="stdio">stdio</option>
-          <option value="sse">SSE</option>
-        </select>
-      </div>
-      <div class="field" v-if="form.transport === 'stdio'">
-        <label>{{ $t('mcp.servers.command') }}</label>
-        <input v-model="form.command" placeholder="npx -y @modelcontextprotocol/server-everything" />
-      </div>
-      <div class="field" v-if="form.transport === 'sse'">
-        <label>{{ $t('mcp.servers.url') }}</label>
-        <input v-model="form.url" placeholder="https://..." />
-      </div>
-      <div class="field">
-        <label>{{ $t('mcp.servers.configJson') }}</label>
-        <textarea v-model="form.configJson" rows="4"></textarea>
-      </div>
-      <button type="submit" class="btn-primary" :disabled="saving">
-        {{ saving ? $t('common.loading') : (isEdit ? $t('provider.update') : $t('provider.create')) }}
-      </button>
-    </form>
+    <BasePageHeader :title="isEdit ? $t('mcp.servers.editTitle') : $t('mcp.servers.addTitle')" />
+
+    <BaseSpinner v-if="loading" size="lg" />
+    <BaseCard v-else>
+      <form @submit.prevent="save">
+        <BaseFormField :label="$t('mcp.servers.name')" required>
+          <input v-model="form.name" required class="input-field" />
+        </BaseFormField>
+        <BaseFormField :label="$t('mcp.servers.description')">
+          <textarea v-model="form.description" rows="2" class="input-field"></textarea>
+        </BaseFormField>
+        <BaseFormField :label="$t('mcp.servers.transport')">
+          <select v-model="form.transport" class="input-field">
+            <option value="stdio">stdio</option>
+            <option value="sse">SSE</option>
+          </select>
+        </BaseFormField>
+        <BaseFormField v-if="form.transport === 'stdio'" :label="$t('mcp.servers.command')">
+          <input v-model="form.command" placeholder="npx -y @modelcontextprotocol/server-everything" class="input-field" />
+        </BaseFormField>
+        <BaseFormField v-if="form.transport === 'sse'" :label="$t('mcp.servers.url')">
+          <input v-model="form.url" placeholder="https://..." class="input-field" />
+        </BaseFormField>
+        <BaseFormField :label="$t('mcp.servers.configJson')">
+          <textarea v-model="form.configJson" rows="4" class="input-field"></textarea>
+        </BaseFormField>
+        <div style="margin-top: var(--space-4);">
+          <BaseButton variant="primary" type="submit" :loading="saving" :disabled="saving">
+            {{ saving ? '' : (isEdit ? $t('provider.update') : $t('provider.create')) }}
+          </BaseButton>
+        </div>
+      </form>
+    </BaseCard>
   </div>
 </template>
 
@@ -43,6 +42,11 @@ import { useRoute, useRouter } from 'vue-router'
 import { mcpServerApi } from '../../api/mcp'
 import { useToast } from '../../composables/useToast'
 import { useI18n } from 'vue-i18n'
+import BasePageHeader from '../../components/ui/BasePageHeader.vue'
+import BaseCard from '../../components/ui/BaseCard.vue'
+import BaseFormField from '../../components/ui/BaseFormField.vue'
+import BaseButton from '../../components/ui/BaseButton.vue'
+import BaseSpinner from '../../components/ui/BaseSpinner.vue'
 
 const { t } = useI18n()
 const { show } = useToast()
@@ -102,11 +106,25 @@ async function save() {
 </script>
 
 <style scoped>
-.loading { color: #666; padding: 20px; text-align: center; }
-.form { max-width: 500px; background: white; padding: 24px; border-radius: 8px; }
-.field { margin-bottom: 16px; }
-.field label { display: block; margin-bottom: 4px; font-weight: 500; }
-.field input, .field select, .field textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
-.btn-primary { padding: 8px 16px; background: #1976d2; color: white; border: none; border-radius: 4px; cursor: pointer; }
-.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+form {
+  max-width: 560px;
+}
+.input-field {
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 0.929rem;
+  background: var(--color-bg-card);
+  width: 100%;
+  box-sizing: border-box;
+}
+.input-field:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+  outline: none;
+}
+textarea.input-field {
+  font-family: var(--font-mono);
+  font-size: 0.857rem;
+}
 </style>

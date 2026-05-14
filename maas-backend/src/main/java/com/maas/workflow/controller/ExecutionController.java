@@ -1,6 +1,7 @@
 package com.maas.workflow.controller;
 
 import com.maas.common.dto.ApiResponse;
+import com.maas.workflow.dto.ExecutionTrendVO;
 import com.maas.workflow.dto.ExecutionVO;
 import com.maas.workflow.entity.ExecutionStatus;
 import com.maas.workflow.service.WorkflowService;
@@ -10,6 +11,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -34,5 +36,11 @@ public class ExecutionController {
     @GetMapping("/{id}")
     public ApiResponse<ExecutionVO> get(@PathVariable UUID id) {
         return ApiResponse.success(workflowService.getExecution(id));
+    }
+
+    @GetMapping("/trends")
+    public ApiResponse<List<ExecutionTrendVO>> trends(
+            @RequestParam(defaultValue = "week") String range) {
+        return ApiResponse.success(workflowService.getExecutionTrends(range));
     }
 }

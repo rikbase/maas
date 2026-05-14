@@ -3,20 +3,24 @@ import { ref } from 'vue'
 export interface ToastMessage {
   id: number
   text: string
-  type: 'success' | 'error'
+  type: 'success' | 'error' | 'warning' | 'info'
 }
 
 const toasts = ref<ToastMessage[]>([])
 let nextId = 0
 
 export function useToast() {
-  function show(text: string, type: 'success' | 'error' = 'success') {
+  function show(text: string, type: ToastMessage['type'] = 'success') {
     const id = nextId++
     toasts.value.push({ id, text, type })
     setTimeout(() => {
       toasts.value = toasts.value.filter(t => t.id !== id)
-    }, 3000)
+    }, 3500)
   }
 
-  return { toasts, show }
+  function dismiss(id: number) {
+    toasts.value = toasts.value.filter(t => t.id !== id)
+  }
+
+  return { toasts, show, dismiss }
 }
