@@ -21,7 +21,7 @@ Spring Boot Backend (Modular Monolith)
   │ Management   │ Audit        │ Integration  │ Management   │
   └──────────────┴──────────────┴──────────────┴──────────────┘
         │
-    PostgreSQL (Flyway migrations V1-V10)
+    PostgreSQL (Flyway migrations V1-V11)
         │
     AI Providers (OpenAI, Anthropic, vLLM, Ollama, Custom)
 ```
@@ -31,13 +31,13 @@ Spring Boot Backend (Modular Monolith)
 | 模块 | 说明 |
 |------|------|
 | **Provider Manager** | 管理 AI 提供商连接，自动健康检测（60s 周期），模型列表自动同步 |
-| **Gateway Router** | OpenAI 兼容 API 网关 (`/v1/chat/completions`)，支持自动路由和手动路由 |
+| **Gateway Router** | OpenAI 兼容 API 网关 (`/v1/chat/completions`)，支持自动路由和手动路由，SSE 流式响应 |
 | **API Key Manager** | 层次化密钥体系（root→team→application），SHA-256 哈希存储，速率限制 |
 | **Security Inspector** | 提示注入检测 + 密钥泄露检测，可配置规则引擎（拦截/标记/审计） |
-| **MCP Config Manager** | MCP 服务器管理，支持 stdio 和 SSE 传输协议，自动发现工具 |
+| **MCP Config Manager** | MCP 服务器管理，支持 stdio 和 SSE 传输协议，自动发现工具，服务端执行能力 |
 | **Skills & Tools Registry** | 技能和工具定义注册中心，带版本生命周期管理 |
-| **Workflow Engine** | DAG 多步骤工作流引擎（AI 调用、工具、技能、条件、循环），模板变量插值 |
-| **Usage Monitor** | Token 用量统计，成本追踪，趋势排行 |
+| **Workflow Engine** | DAG 多步骤工作流引擎（AI 调用、工具、技能、条件、循环），模板变量插值，支持 cron 定时触发和 webhook 触发 |
+| **Usage Monitor** | Token 用量统计，成本追踪，趋势排行，提供独立用量分析页面 |
 | **User & Auth** | 用户名/密码登录，JWT 令牌，角色权限（admin/viewer），用户 CRUD 管理 |
 | **Login Log** | 登录尝试记录（成功/失败），仪表盘统计和最近活动展示 |
 | **Model Management** | 模型定义管理，自动同步提供商模型，启用/停用控制 |
@@ -49,11 +49,11 @@ Spring Boot Backend (Modular Monolith)
 |------|---------|
 | 后端 | Java 17, Spring Boot 3.2.5, Spring Security, Spring Data JPA |
 | 前端 | Vue 3 (Composition API), TypeScript, Vite 5, Pinia, Vue Router 4 |
-| UI | 自研设计系统（CSS 变量 + 基础组件库），无外部 UI 框架依赖 |
+| UI | 自研设计系统（CSS 变量 + 基础组件库），深色玻璃主题（Holographic Command Center 设计语言），无外部 UI 框架依赖 |
 | 数据库 | PostgreSQL 16, Flyway (数据库迁移) |
 | 认证 | JWT (jjwt 0.12.5), BCrypt |
 | 国际化 | vue-i18n (zh-CN / en)，侧栏一键切换 |
-| 工作流 | @vue-flow/core (DAG 可视化编辑器) |
+| 工作流 | @vue-flow/core (DAG 可视化编辑器)，cron 表达式解析 |
 
 ## 快速开始
 
@@ -111,7 +111,7 @@ maas-backend/
     dify/            # Dify 集成 + OAuth 2.0 SSO
     gateway/         # OpenAI 兼容 API 网关
     log/             # 登录日志记录和统计
-    mcp/             # MCP 服务器管理
+    mcp/             # MCP 服务器管理 + 运行时执行
     monitor/         # 用量监控
     provider/        # AI 提供商管理（适配器模式：OpenAI、Anthropic、vLLM、Ollama）
     registry/        # 技能和工具注册中心
@@ -119,7 +119,7 @@ maas-backend/
     user/            # 用户认证和用户管理（admin/viewer 角色）
     workflow/        # 工作流引擎
   src/main/resources/
-    db/migration/    # Flyway SQL 迁移（V1-V10）
+    db/migration/    # Flyway SQL 迁移（V1-V11）
     application.yml  # 配置文件
 
 maas-frontend/
@@ -129,12 +129,12 @@ maas-frontend/
       icons/         # 18 个内联 SVG 图标组件
       ui/            # 基础 UI 组件库（BaseButton, BaseCard, BaseModal 等）
       workflow/      # 工作流编辑器节点组件
-    composables/     # Vue 组合式函数（useToast, useConfirm）
+    composables/     # Vue 组合式函数（useToast, useConfirm, useCountUp）
     locales/         # 翻译文件（en.ts, zh.ts）
     router/          # 路由配置（含 JWT 角色守卫）
-    styles/          # 设计系统（variables.css, base.css, utilities.css）
+    styles/          # 设计系统（variables.css, base.css, utilities.css, dark-theme.css）
     types/           # TypeScript 类型定义
-    views/           # 页面组件（~25 个视图）
+    views/           # 页面组件（~30 个视图）
 ```
 
 ## API 概览
@@ -219,9 +219,20 @@ maas-frontend/
 - `GET /api/executions` — 全局执行记录
 - `GET /api/executions/trends` — 执行趋势（7 天）
 
+### 工作流触发器
+
+- `POST /api/triggers` — 创建触发器
+- `PUT /api/triggers/{id}` — 更新触发器
+- `DELETE /api/triggers/{id}` — 删除触发器
+- `POST /api/webhooks/{secret}` — Webhook 触发入口
+
+### MCP 执行
+
+- `POST /api/mcp/execute` — 通过服务端执行 MCP 工具调用
+
 ## 前端设计系统
 
-前端基于 CSS 变量构建了完整的设计系统，无需外部 UI 框架。
+前端基于 CSS 变量构建了完整的设计系统，深色玻璃主题（Holographic Command Center 设计语言），无需外部 UI 框架。
 
 ### 设计令牌
 
@@ -231,6 +242,7 @@ maas-frontend/
 --color-danger: #ef4444      (红色)
 --color-warning: #f59e0b     (琥珀)
 --sidebar-bg: #0f172a        (深蓝黑侧栏)
+--glass-bg: rgba(12,12,35,0.55)  (玻璃卡片底色)
 ```
 
 ### 基础组件库
@@ -245,7 +257,25 @@ BaseSpinner.vue     — CSS 加载动画
 BaseEmpty.vue       — 空状态占位
 BasePagination.vue  — 分页组件
 BaseFormField.vue   — 表单字段包装
+BaseTable.vue       — 通用数据表格
 ```
+
+### Dashboard 设计亮点
+
+- **HUD 角标** — 卡片四角色标 bracket 装饰，hover 时淡入，颜色继承卡片主题色
+- **点阵背景** — radial-gradient 靛蓝点阵，增强科技感
+- **霓虹光效** — 卡片 hover 时多步交互链（缩放→图标脉冲→数值发光→角标淡入）
+- **流光条** — 卡片顶部装饰条 hover 时白色扫光动画
+- **KPI 行差异化** — 首行主指标更大（1.8rem, 46px 图标），第三行更紧凑
+- **入场动画** — 页面加载 staggered fadeInUp + blur 景深效果
+
+### 动画效果
+
+- 趋势柱状图 staggered grow-in 依次升起
+- Token 进度条渐变流动动画
+- 健康状态点 box-shadow 脉冲
+- 登录日志 slide-in 逐个入场
+- 所有动画遵循 `prefers-reduced-motion` 媒体查询
 
 ### 图标
 
