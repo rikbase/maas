@@ -15,7 +15,7 @@ html {
 body {
   font-family: var(--font-sans);
   color: var(--color-foreground);
-  background: var(--color-bg-page);
+  background: #0f0414;
   line-height: 1.6;
   min-height: 100vh;
 }

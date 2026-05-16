@@ -3,9 +3,15 @@
     <div class="editor-toolbar">
       <h1>{{ workflowName || $t('workflow.editor') }}</h1>
       <div class="toolbar-actions">
-        <button @click="saveDraft" class="btn-primary" :disabled="saving">{{ $t('workflow.save') }}</button>
-        <button @click="publishWorkflow" class="btn-ok" :disabled="saving">{{ $t('workflow.publish') }}</button>
-        <router-link :to="`/workflows/${workflowId}`" class="btn-sm">{{ $t('common.cancel') }}</router-link>
+        <BaseButton variant="primary" size="sm" :loading="saving" :disabled="saving" @click="saveDraft">
+          {{ $t('workflow.save') }}
+        </BaseButton>
+        <BaseButton variant="primary" size="sm" :loading="saving" :disabled="saving" @click="publishWorkflow">
+          {{ $t('workflow.publish') }}
+        </BaseButton>
+        <BaseButton variant="secondary" size="sm" @click="$router.push(`/workflows/${workflowId}`)">
+          {{ $t('common.cancel') }}
+        </BaseButton>
       </div>
     </div>
 
@@ -56,6 +62,7 @@ import AiCallNode from '../../components/workflow/nodes/AiCallNode.vue'
 import ToolNode from '../../components/workflow/nodes/ToolNode.vue'
 import ConditionNode from '../../components/workflow/nodes/ConditionNode.vue'
 import LoopNode from '../../components/workflow/nodes/LoopNode.vue'
+import BaseButton from '../../components/ui/BaseButton.vue'
 import { workflowApi } from '../../api/workflows'
 import { useToast } from '../../composables/useToast'
 import { useI18n } from 'vue-i18n'
@@ -245,9 +252,4 @@ function onNodeDelete(nodeId: string) {
 .toolbar-actions { display: flex; gap: 8px; }
 .editor-body { display: flex; gap: 12px; flex: 1; min-height: 0; }
 .canvas-wrapper { flex: 1; border-radius: var(--radius-md); overflow: hidden; background: var(--color-bg-muted); border: 1px solid var(--color-border); position: relative; }
-.btn-primary { padding: 8px 16px; background: var(--color-primary); color: var(--color-bg-card); border: none; border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; }
-.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
-.btn-ok { padding: 8px 16px; background: var(--color-bg-muted); color: var(--color-success); border: 1px solid var(--color-border); border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; }
-.btn-ok:disabled { opacity: 0.6; cursor: not-allowed; }
-.btn-sm { padding: 6px 12px; background: var(--color-bg-muted); color: var(--color-primary); border: none; border-radius: var(--radius-sm); cursor: pointer; text-decoration: none; font-size: 13px; }
 </style>

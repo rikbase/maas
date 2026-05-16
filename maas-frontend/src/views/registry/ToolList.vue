@@ -23,39 +23,33 @@
       </select>
     </div>
 
-    <BaseSpinner v-if="loading" class="spinner" />
-
-    <BaseEmpty v-else-if="filtered.length === 0" :text="$t('registry.tools.empty')" />
-
-    <table v-else class="data-table">
-      <thead>
-        <tr>
-          <th>{{ $t('registry.tools.name') }}</th>
-          <th>{{ $t('provider.description') }}</th>
-          <th>{{ $t('registry.tools.source') }}</th>
-          <th>{{ $t('registry.tools.status') }}</th>
-          <th>{{ $t('provider.actions') }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="t in filtered" :key="t.id">
-          <td>
-            <router-link :to="`/tools/${t.id}`" class="data-table-link">{{ t.name }}</router-link>
-          </td>
-          <td><span class="data-table-desc">{{ t.description || '—' }}</span></td>
-          <td><BaseBadge variant="info">{{ t.source }}</BaseBadge></td>
-          <td>
-            <BaseButton size="sm" variant="ghost" @click="toggleTool(t)">
-              {{ t.enabled ? $t('registry.tools.enabled') : $t('registry.tools.disabled') }}
-            </BaseButton>
-          </td>
-          <td>
-            <BaseButton size="sm" variant="ghost" @click="router.push(`/tools/${t.id}/edit`)">{{ $t('provider.edit') }}</BaseButton>
-            <BaseButton size="sm" variant="danger" @click="deleteTool(t.id)">{{ $t('provider.delete') }}</BaseButton>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <BaseTable
+      :columns="columns"
+      :data="filtered"
+      :loading="loading"
+      :empty-text="$t('registry.tools.empty')"
+      :row-click="(t: any) => router.push(`/tools/${t.id}`)"
+      card
+    >
+      <template #cell-name="{ row }">
+        <router-link :to="`/tools/${row.id}`" class="link" @click.stop>{{ row.name }}</router-link>
+      </template>
+      <template #cell-description="{ row }">
+        <span class="desc">{{ row.description || '—' }}</span>
+      </template>
+      <template #cell-source="{ row }">
+        <BaseBadge variant="info">{{ row.source }}</BaseBadge>
+      </template>
+      <template #cell-status="{ row }">
+        <BaseButton size="sm" variant="ghost" @click.stop="toggleTool(row)">
+          {{ row.enabled ? $t('registry.tools.enabled') : $t('registry.tools.disabled') }}
+        </BaseButton>
+      </template>
+      <template #cell-actions="{ row }">
+        <BaseButton size="sm" variant="ghost" @click.stop="router.push(`/tools/${row.id}/edit`)">{{ $t('provider.edit') }}</BaseButton>
+        <BaseButton size="sm" variant="danger" @click.stop="deleteTool(row.id)">{{ $t('provider.delete') }}</BaseButton>
+      </template>
+    </BaseTable>
   </div>
 </template>
 
@@ -63,8 +57,8 @@
 import BasePageHeader from '../../components/ui/BasePageHeader.vue'
 import BaseButton from '../../components/ui/BaseButton.vue'
 import BaseBadge from '../../components/ui/BaseBadge.vue'
-import BaseSpinner from '../../components/ui/BaseSpinner.vue'
-import BaseEmpty from '../../components/ui/BaseEmpty.vue'
+import BaseTable from '../../components/ui/BaseTable.vue'
+import type { TableColumn } from '../../components/ui/BaseTable.vue'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { toolApi } from '../../api/registry'
@@ -83,6 +77,14 @@ const allTools = ref<ToolDef[]>([])
 const searchQ = ref('')
 const filterSource = ref('')
 const filterEnabled = ref('')
+
+const columns: TableColumn[] = [
+  { key: 'name', label: t('registry.tools.name') },
+  { key: 'description', label: t('provider.description') },
+  { key: 'source', label: t('registry.tools.source') },
+  { key: 'status', label: t('registry.tools.status') },
+  { key: 'actions', label: t('provider.actions') },
+]
 
 const filtered = computed(() => {
   let list = allTools.value
@@ -149,11 +151,6 @@ async function deleteTool(id: string) {
 </script>
 
 <style scoped>
-.spinner {
-  display: flex;
-  justify-content: center;
-  padding: var(--space-8);
-}
 .filter-bar {
   display: flex;
   gap: var(--space-3);
@@ -194,44 +191,15 @@ async function deleteTool(id: string) {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--color-primary-light);
 }
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: var(--color-bg-card);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-}
-.data-table th {
-  text-transform: uppercase;
-  font-size: 0.857rem;
-  color: var(--color-foreground-secondary);
-  font-weight: 600;
-  text-align: left;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--color-border);
-}
-.data-table td {
-  padding: 10px 12px;
-  text-align: left;
-  border-bottom: 1px solid var(--color-border);
-  font-size: 0.875rem;
-  color: var(--color-foreground);
-}
-.data-table tbody tr:hover {
-  background: var(--color-bg-muted);
-}
-.data-table tbody tr:last-child td {
-  border-bottom: none;
-}
-.data-table-link {
+.link {
   color: var(--color-primary);
   text-decoration: none;
   font-weight: 500;
 }
-.data-table-link:hover {
+.link:hover {
   text-decoration: underline;
 }
-.data-table-desc {
+.desc {
   font-size: 0.8rem;
   color: var(--color-foreground-secondary);
 }

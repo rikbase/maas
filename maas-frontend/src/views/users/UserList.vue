@@ -8,55 +8,46 @@
       </template>
     </BasePageHeader>
 
-    <BaseSpinner v-if="loading" />
-
-    <BaseEmpty
-      v-else-if="users.length === 0"
-      :text="$t('user.empty')"
-    />
-
-    <table v-else class="data-table">
-      <thead>
-        <tr>
-          <th>{{ $t('user.username') }}</th>
-          <th>{{ $t('user.displayName') }}</th>
-          <th>{{ $t('user.role') }}</th>
-          <th>{{ $t('user.status') }}</th>
-          <th>{{ $t('user.createdAt') }}</th>
-          <th>{{ $t('user.actions') }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="u in users" :key="u.id">
-          <td>{{ u.username }}</td>
-          <td>{{ u.displayName || '-' }}</td>
-          <td>
-            <BaseBadge :variant="u.role === 'admin' ? 'primary' : 'neutral'">
-              {{ $t('user.roles.' + u.role) }}
-            </BaseBadge>
-          </td>
-          <td>
-            <BaseBadge :variant="u.status === 'active' ? 'success' : 'danger'">
-              {{ $t('user.statuses.' + u.status) }}
-            </BaseBadge>
-          </td>
-          <td class="text-mono">{{ formatDate(u.createdAt) }}</td>
-          <td>
-            <BaseButton variant="secondary" size="sm" @click="$router.push('/users/' + u.id + '/edit')">
-              {{ $t('user.edit') }}
-            </BaseButton>
-            <BaseButton
-              v-if="u.username !== currentUsername"
-              variant="danger"
-              size="sm"
-              @click="deleteUser(u.id)"
-            >
-              {{ $t('common.delete') }}
-            </BaseButton>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <BaseTable
+      :columns="columns"
+      :data="users"
+      :loading="loading"
+      :empty-text="$t('user.empty')"
+      card
+    >
+      <template #cell-username="{ row }">
+        <strong>{{ row.username }}</strong>
+      </template>
+      <template #cell-displayName="{ row }">
+        {{ row.displayName || '-' }}
+      </template>
+      <template #cell-role="{ row }">
+        <BaseBadge :variant="row.role === 'admin' ? 'primary' : 'neutral'">
+          {{ $t('user.roles.' + row.role) }}
+        </BaseBadge>
+      </template>
+      <template #cell-status="{ row }">
+        <BaseBadge :variant="row.status === 'active' ? 'success' : 'danger'">
+          {{ $t('user.statuses.' + row.status) }}
+        </BaseBadge>
+      </template>
+      <template #cell-createdAt="{ row }">
+        <span class="text-mono">{{ formatDate(row.createdAt) }}</span>
+      </template>
+      <template #cell-actions="{ row }">
+        <BaseButton variant="secondary" size="sm" @click="$router.push('/users/' + row.id + '/edit')">
+          {{ $t('user.edit') }}
+        </BaseButton>
+        <BaseButton
+          v-if="row.username !== currentUsername"
+          variant="danger"
+          size="sm"
+          @click="deleteUser(row.id)"
+        >
+          {{ $t('common.delete') }}
+        </BaseButton>
+      </template>
+    </BaseTable>
   </div>
 </template>
 
@@ -70,8 +61,8 @@ import { useAuthStore } from '../../stores/auth'
 import BasePageHeader from '../../components/ui/BasePageHeader.vue'
 import BaseButton from '../../components/ui/BaseButton.vue'
 import BaseBadge from '../../components/ui/BaseBadge.vue'
-import BaseSpinner from '../../components/ui/BaseSpinner.vue'
-import BaseEmpty from '../../components/ui/BaseEmpty.vue'
+import BaseTable from '../../components/ui/BaseTable.vue'
+import type { TableColumn } from '../../components/ui/BaseTable.vue'
 
 const { t } = useI18n()
 const { show } = useToast()
@@ -81,6 +72,15 @@ const auth = useAuthStore()
 const loading = ref(true)
 const users = ref<UserVO[]>([])
 const currentUsername = auth.user?.username || ''
+
+const columns: TableColumn[] = [
+  { key: 'username', label: t('user.username') },
+  { key: 'displayName', label: t('user.displayName') },
+  { key: 'role', label: t('user.role') },
+  { key: 'status', label: t('user.status') },
+  { key: 'createdAt', label: t('user.createdAt') },
+  { key: 'actions', label: t('user.actions') },
+]
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString()
@@ -110,27 +110,6 @@ async function deleteUser(id: string) {
 </script>
 
 <style scoped>
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-.data-table th {
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-size: 0.857rem;
-  color: var(--color-foreground-secondary);
-  border-bottom: 2px solid var(--color-border);
-  padding: 10px 12px;
-  text-align: left;
-  font-weight: 600;
-}
-.data-table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--color-border);
-}
-.data-table tbody tr:hover td {
-  background: var(--color-bg-muted);
-}
 .text-mono {
   font-family: var(--font-mono);
   font-size: 0.857rem;

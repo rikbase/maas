@@ -74,17 +74,19 @@ async function handleLogin() {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--sidebar-bg, #0f172a) 0%, #1e293b 100%);
+  background: linear-gradient(135deg, #0f0414, #1a0a2e, #0f0b29);
 }
 
 .login-card {
-  background: var(--color-bg-card);
+  background: rgba(255,255,255,0.06);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   padding: var(--space-8);
   border-radius: var(--radius-xl);
   width: 100%;
   max-width: 420px;
-  box-shadow: var(--shadow-xl);
-  border: 1px solid var(--color-border);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,255,255,0.08);
 }
 
 .login-logo {
@@ -92,19 +94,24 @@ async function handleLogin() {
   margin: 0 0 var(--space-8);
   font-size: 1.5rem;
   font-weight: 800;
-  color: var(--color-foreground);
+  color: rgba(255,255,255,0.9);
   letter-spacing: -0.02em;
+}
+
+/* Override BaseFormField label color for dark login page */
+.login-card :deep(.base-form-field__label) {
+  color: rgba(255,255,255,0.7);
 }
 
 .login-input {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid var(--color-border);
+  border: 1px solid rgba(255,255,255,0.1);
   border-radius: var(--radius-md);
   font-size: 0.929rem;
   font-family: var(--font-sans);
-  color: var(--color-foreground);
-  background: var(--color-bg-card);
+  color: rgba(255,255,255,0.9);
+  background: rgba(255,255,255,0.06);
   box-sizing: border-box;
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
@@ -120,12 +127,16 @@ async function handleLogin() {
   cursor: not-allowed;
 }
 
+.login-input::placeholder {
+  color: rgba(255,255,255,0.3);
+}
+
 .login-error {
-  color: var(--color-danger);
+  color: #fca5a5;
   font-size: 0.857rem;
   margin: 0 0 var(--space-4);
   padding: var(--space-2) var(--space-3);
-  background: var(--color-danger-light);
+  background: rgba(239,68,68,0.15);
   border-radius: var(--radius-sm);
 }
 

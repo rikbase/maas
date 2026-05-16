@@ -224,12 +224,12 @@ async function save() {
 
 .template-chip:hover {
   border-color: var(--color-primary);
-  background: #f8f7ff;
+  background: var(--color-primary-light);
 }
 
 .template-chip--active {
   border-color: var(--color-primary);
-  background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+  background: linear-gradient(135deg, var(--color-primary-light), var(--color-info-light));
   box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
 }
 

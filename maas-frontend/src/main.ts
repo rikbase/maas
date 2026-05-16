@@ -5,6 +5,7 @@ import i18n from './i18n'
 import App from './App.vue'
 
 import './styles/variables.css'
+import './styles/dark-theme.css'
 import './styles/base.css'
 import './styles/utilities.css'
 

@@ -1,5 +1,5 @@
 <template>
-  <div class="layout">
+  <div :class="['layout', 'dark-theme']">
     <aside :class="['sidebar', { 'sidebar--collapsed': collapsed }]">
       <div class="sidebar__header">
         <div class="sidebar__logo">
@@ -13,16 +13,19 @@
       </div>
 
       <nav class="sidebar__nav">
-        <router-link
-          v-for="item in navItems"
-          :key="item.path"
-          :to="item.path"
-          class="nav-item"
-          :class="{ 'nav-item--active': isActive(item.path) }"
-        >
-          <component :is="item.icon" class="nav-item__icon" />
-          <span v-show="!collapsed" class="nav-item__label">{{ $t(item.label) }}</span>
-        </router-link>
+        <template v-for="(group, gi) in navGroups" :key="gi">
+          <div v-if="!collapsed" class="nav-section-label">{{ group.section }}</div>
+          <router-link
+            v-for="item in group.items"
+            :key="item.path"
+            :to="item.path"
+            class="nav-item"
+            :class="{ 'nav-item--active': isActive(item.path) }"
+          >
+            <component :is="item.icon" class="nav-item__icon" />
+            <span v-show="!collapsed" class="nav-item__label">{{ $t(item.label) }}</span>
+          </router-link>
+        </template>
       </nav>
 
       <div class="sidebar__footer">
@@ -45,7 +48,8 @@
         </div>
       </div>
     </aside>
-    <main :class="['main', { 'main--expanded': collapsed }]">
+    <main ref="mainRef" :class="['main', 'dark-theme', { 'main--expanded': collapsed }]" @mousemove="trackMouse" @mouseleave="mx = null">
+      <div class="main-spotlight" v-if="mx !== null" :style="spotlightStyle" aria-hidden="true"></div>
       <router-view v-slot="{ Component }">
         <transition name="fade" mode="out-in">
           <component :is="Component" />
@@ -56,7 +60,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { setLocale } from '../i18n'
 import { useI18n } from 'vue-i18n'
@@ -84,19 +88,66 @@ const route = useRoute()
 const auth = useAuthStore()
 const collapsed = ref(false)
 
-const navItems = [
-  { path: '/', icon: IconDashboard, label: 'nav.dashboard' },
-  { path: '/providers', icon: IconProviders, label: 'nav.providers' },
-  { path: '/models', icon: IconModels, label: 'nav.models' },
-  { path: '/keys', icon: IconKeys, label: 'nav.apiKeys' },
-  { path: '/security/rules', icon: IconSecurity, label: 'security.nav' },
-  { path: '/users', icon: IconUser, label: 'user.title' },
-  { path: '/mcp/servers', icon: IconMCP, label: 'nav.mcp' },
-  { path: '/dify', icon: IconDify, label: 'nav.dify' },
-  { path: '/skills', icon: IconSkills, label: 'nav.skills' },
-  { path: '/tools', icon: IconTools, label: 'nav.tools' },
-  { path: '/workflows', icon: IconWorkflows, label: 'nav.workflows' },
-  { path: '/executions', icon: IconExecutions, label: 'nav.executions' },
+// ---- Mouse tracking for spotlight ----
+const mainRef = ref<HTMLElement | null>(null)
+const mx = ref<number | null>(null)
+const my = ref<number | null>(null)
+
+const spotlightStyle = computed(() => {
+  if (mx.value === null || my.value === null) return { display: 'none' }
+  return {
+    background: `radial-gradient(800px circle at ${mx.value}px ${my.value}px, rgba(99,102,241,0.12), transparent 50%)`,
+  }
+})
+
+function trackMouse(e: MouseEvent) {
+  const el = mainRef.value
+  if (!el) return
+  const rect = el.getBoundingClientRect()
+  mx.value = e.clientX - rect.left
+  my.value = e.clientY - rect.top
+}
+
+interface NavItem {
+  path: string
+  icon: any
+  label: string
+}
+
+interface NavGroup {
+  section: string
+  items: NavItem[]
+}
+
+const navGroups: NavGroup[] = [
+  {
+    section: 'System',
+    items: [
+      { path: '/', icon: IconDashboard, label: 'nav.dashboard' },
+      { path: '/usage', icon: IconDashboard, label: 'nav.usage' },
+      { path: '/providers', icon: IconProviders, label: 'nav.providers' },
+      { path: '/models', icon: IconModels, label: 'nav.models' },
+      { path: '/keys', icon: IconKeys, label: 'nav.apiKeys' },
+      { path: '/security/rules', icon: IconSecurity, label: 'security.nav' },
+      { path: '/users', icon: IconUser, label: 'user.title' },
+    ],
+  },
+  {
+    section: 'Integrations',
+    items: [
+      { path: '/mcp/servers', icon: IconMCP, label: 'nav.mcp' },
+      { path: '/dify', icon: IconDify, label: 'nav.dify' },
+    ],
+  },
+  {
+    section: 'Automation',
+    items: [
+      { path: '/skills', icon: IconSkills, label: 'nav.skills' },
+      { path: '/tools', icon: IconTools, label: 'nav.tools' },
+      { path: '/workflows', icon: IconWorkflows, label: 'nav.workflows' },
+      { path: '/executions', icon: IconExecutions, label: 'nav.executions' },
+    ],
+  },
 ]
 
 function isActive(path: string) {
@@ -119,7 +170,7 @@ function handleLogout() {
 .layout {
   display: flex;
   height: 100vh;
-  background: var(--color-bg-page);
+  background: #0a0a18;
 }
 
 /* ── Sidebar ── */
@@ -231,6 +282,15 @@ function handleLogout() {
 .nav-item__label {
   overflow: hidden;
 }
+.nav-section-label {
+  font-size: 0.643rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--sidebar-text);
+  padding: var(--space-4) var(--space-3) var(--space-1);
+  opacity: 0.6;
+}
 
 /* ── Footer ── */
 .sidebar__footer {
@@ -311,5 +371,41 @@ function handleLogout() {
   overflow-y: auto;
   transition: margin-left var(--transition-normal);
   min-width: 0;
+  position: relative;
+}
+
+/* Animated gradient background */
+@keyframes mainBgAnim {
+  0% { background-position: 0% 50%; }
+  25% { background-position: 50% 0%; }
+  50% { background-position: 100% 50%; }
+  75% { background-position: 50% 100%; }
+  100% { background-position: 0% 50%; }
+}
+.main::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background: linear-gradient(135deg, #0f0414, #1a0a2e, #0f0b29, #0d1f1a, #061412);
+  background-size: 400% 400%;
+  animation: mainBgAnim 24s ease infinite;
+}
+
+/* Mouse spotlight — sits between bg and content so glass cards blur it */
+.main-spotlight {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  transition: background 0.1s ease-out;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .main::before {
+    animation: none;
+  }
 }
 </style>

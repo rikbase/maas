@@ -21,6 +21,7 @@ const router = createRouter({
       children: [
         { path: '', name: 'Dashboard', component: () => import('../views/Dashboard.vue') },
         { path: 'providers', name: 'Providers', component: () => import('../views/providers/ProviderList.vue') },
+        { path: 'usage', name: 'Usage', component: () => import('../views/usage/UsagePage.vue') },
         { path: 'providers/new', name: 'ProviderCreate', component: () => import('../views/providers/ProviderForm.vue'), meta: { requiresAdmin: true } },
         { path: 'providers/:id/edit', name: 'ProviderEdit', component: () => import('../views/providers/ProviderForm.vue'), meta: { requiresAdmin: true } },
         { path: 'keys', name: 'Keys', component: () => import('../views/keys/KeyList.vue') },

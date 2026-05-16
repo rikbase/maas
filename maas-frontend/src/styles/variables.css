@@ -9,12 +9,16 @@
 
   --color-success: #10b981;
   --color-success-light: #d1fae5;
+  --color-success-dark: #065f46;
   --color-warning: #f59e0b;
   --color-warning-light: #fef3c7;
+  --color-warning-dark: #92400e;
   --color-danger: #ef4444;
   --color-danger-light: #fee2e2;
+  --color-danger-dark: #991b1b;
   --color-info: #6366f1;
   --color-info-light: #e0e7ff;
+  --color-info-dark: #3730a3;
 
   --color-bg-page: #F5F3FF;
   --color-bg-card: #ffffff;
@@ -39,6 +43,23 @@
     system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Fira Mono',
     'Roboto Mono', monospace;
+
+  /* Type scale */
+  --text-xs: 0.714rem;    /* 10px - badges, meta */
+  --text-sm: 0.786rem;    /* 11px - table cells, descriptions */
+  --text-base: 0.929rem;  /* 13px - body */
+  --text-md: 1rem;        /* 14px - larger body / button */
+  --text-lg: 1.143rem;    /* 16px - card titles */
+  --text-xl: 1.286rem;    /* 18px - page titles */
+  --text-2xl: 1.571rem;   /* 22px - section hero */
+  --text-3xl: 2rem;       /* 28px - dashboard KPIs */
+
+  /* Semantic color aliases for charts & data viz */
+  --color-chart-1: var(--color-primary);
+  --color-chart-2: #3b82f6;
+  --color-chart-3: #f59e0b;
+  --color-chart-4: var(--color-success);
+  --color-chart-5: #7c3aed;
 
   /* ── Spacing (4px grid) ── */
   --space-1: 4px;

@@ -8,54 +8,50 @@
       </template>
     </BasePageHeader>
 
-    <BaseCard noPadding>
-      <BaseSpinner v-if="loading" size="lg" class="loading-spinner" />
-      <BaseEmpty
-        v-else-if="providers.length === 0"
-        :text="$t('provider.empty')"
-      />
-      <table v-else class="provider-table">
-        <thead>
-          <tr>
-            <th>{{ $t('provider.name') }}</th>
-            <th>{{ $t('provider.type') }}</th>
-            <th>{{ $t('provider.status') }}</th>
-            <th>{{ $t('provider.health') }}</th>
-            <th>{{ $t('provider.actions') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="p in providers" :key="p.id">
-            <td class="cell-name">{{ p.name }}</td>
-            <td>{{ $t('provider.types.' + p.type) }}</td>
-            <td>
-              <BaseBadge :variant="statusBadgeVariant(p.status)">
-                {{ $t('provider.statuses.' + p.status) }}
-              </BaseBadge>
-            </td>
-            <td>
-              <BaseBadge :variant="healthBadgeVariant(p.healthStatus)">
-                {{ $t('provider.healthStatuses.' + (p.healthStatus || 'unknown')) }}
-              </BaseBadge>
-            </td>
-            <td class="cell-actions">
-              <BaseButton variant="secondary" size="sm" @click="$router.push(`/providers/${p.id}/edit`)">
-                {{ $t('provider.edit') }}
-              </BaseButton>
-              <BaseButton variant="secondary" size="sm" :loading="checkingIds.has(p.id)" :disabled="checkingIds.has(p.id)" @click="refreshHealth(p)">
-                {{ $t('provider.refreshHealth') }}
-              </BaseButton>
-              <BaseButton v-if="p.healthStatus === 'unhealthy'" variant="primary" size="sm" @click="markHealthy(p)">
-                {{ $t('provider.markHealthy') }}
-              </BaseButton>
-              <BaseButton variant="danger" size="sm" @click="deleteProvider(p.id)">
-                {{ $t('provider.delete') }}
-              </BaseButton>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </BaseCard>
+    <BaseTable
+      :columns="columns"
+      :data="providers"
+      :loading="loading"
+      :empty-text="$t('provider.empty')"
+      card
+    >
+      <template #cell-name="{ row }">
+        <span class="cell-name">{{ row.name }}</span>
+      </template>
+      <template #cell-type="{ row }">
+        {{ $t('provider.types.' + row.type) }}
+      </template>
+      <template #cell-status="{ row }">
+        <BaseBadge :variant="statusBadgeVariant(row.status)">
+          {{ $t('provider.statuses.' + row.status) }}
+        </BaseBadge>
+      </template>
+      <template #cell-health="{ row }">
+        <BaseBadge :variant="healthBadgeVariant(row.healthStatus)">
+          {{ $t('provider.healthStatuses.' + (row.healthStatus || 'unknown')) }}
+        </BaseBadge>
+      </template>
+      <template #cell-actions="{ row }">
+        <BaseButton variant="secondary" size="sm" @click="$router.push(`/providers/${row.id}/edit`)">
+          {{ $t('provider.edit') }}
+        </BaseButton>
+        <BaseButton
+          variant="secondary"
+          size="sm"
+          :loading="checkingIds.has(row.id)"
+          :disabled="checkingIds.has(row.id)"
+          @click="refreshHealth(row)"
+        >
+          {{ $t('provider.refreshHealth') }}
+        </BaseButton>
+        <BaseButton v-if="row.healthStatus === 'unhealthy'" variant="primary" size="sm" @click="markHealthy(row)">
+          {{ $t('provider.markHealthy') }}
+        </BaseButton>
+        <BaseButton variant="danger" size="sm" @click="deleteProvider(row.id)">
+          {{ $t('provider.delete') }}
+        </BaseButton>
+      </template>
+    </BaseTable>
   </div>
 </template>
 
@@ -69,9 +65,8 @@ import { useConfirm } from '../../composables/useConfirm'
 import BasePageHeader from '../../components/ui/BasePageHeader.vue'
 import BaseButton from '../../components/ui/BaseButton.vue'
 import BaseBadge from '../../components/ui/BaseBadge.vue'
-import BaseCard from '../../components/ui/BaseCard.vue'
-import BaseSpinner from '../../components/ui/BaseSpinner.vue'
-import BaseEmpty from '../../components/ui/BaseEmpty.vue'
+import BaseTable from '../../components/ui/BaseTable.vue'
+import type { TableColumn } from '../../components/ui/BaseTable.vue'
 
 const { t } = useI18n()
 const { show } = useToast()
@@ -80,6 +75,14 @@ const { confirm: confirmDialog } = useConfirm()
 const loading = ref(true)
 const providers = ref<Provider[]>([])
 const checkingIds = ref<Set<string>>(new Set())
+
+const columns: TableColumn[] = [
+  { key: 'name', label: t('provider.name') },
+  { key: 'type', label: t('provider.type') },
+  { key: 'status', label: t('provider.status') },
+  { key: 'health', label: t('provider.health') },
+  { key: 'actions', label: t('provider.actions') },
+]
 
 onMounted(async () => {
   try {
@@ -132,75 +135,24 @@ async function refreshHealth(p: Provider) {
 
 function statusBadgeVariant(status: Provider['status']): 'success' | 'danger' | 'neutral' {
   switch (status) {
-    case 'enabled':
-      return 'success'
-    case 'error':
-      return 'danger'
-    case 'disabled':
-    default:
-      return 'neutral'
+    case 'enabled': return 'success'
+    case 'error': return 'danger'
+    case 'disabled': default: return 'neutral'
   }
 }
 
 function healthBadgeVariant(healthStatus: string): 'success' | 'danger' | 'warning' | 'neutral' {
   switch (healthStatus) {
-    case 'healthy':
-      return 'success'
-    case 'unhealthy':
-    case 'error':
-      return 'danger'
-    case 'degraded':
-      return 'warning'
-    default:
-      return 'neutral'
+    case 'healthy': return 'success'
+    case 'unhealthy': case 'error': return 'danger'
+    case 'degraded': return 'warning'
+    default: return 'neutral'
   }
 }
 </script>
 
 <style scoped>
-.loading-spinner {
-  display: flex;
-  justify-content: center;
-  padding: var(--space-12);
-}
-
-.provider-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.provider-table th {
-  text-align: left;
-  padding: 10px 12px;
-  font-weight: 600;
-  font-size: 0.857rem;
-  color: var(--color-foreground-secondary);
-  border-bottom: 2px solid var(--color-border);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.provider-table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--color-border);
-  font-size: 0.929rem;
-  color: var(--color-foreground);
-}
-
-.provider-table tr:hover td {
-  background: var(--color-bg-muted);
-}
-
-.provider-table tr:last-child td {
-  border-bottom: none;
-}
-
 .cell-name {
   font-weight: 600;
-}
-
-.cell-actions {
-  display: flex;
-  gap: var(--space-2);
 }
 </style>

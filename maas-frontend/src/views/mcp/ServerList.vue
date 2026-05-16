@@ -8,46 +8,38 @@
       </template>
     </BasePageHeader>
 
-    <BaseSpinner v-if="loading" size="lg" />
-    <BaseEmpty
-      v-else-if="servers.length === 0"
-      :text="$t('mcp.servers.empty')"
-      :action-text="$t('mcp.servers.emptyHint')"
-    />
-    <table v-else class="design-table">
-      <thead>
-        <tr>
-          <th>{{ $t('mcp.servers.name') }}</th>
-          <th>{{ $t('mcp.servers.transport') }}</th>
-          <th>{{ $t('mcp.servers.status') }}</th>
-          <th>{{ $t('mcp.servers.toolCount') }}</th>
-          <th>{{ $t('mcp.servers.actions') }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="s in servers" :key="s.id">
-          <td>
-            <router-link :to="`/mcp/servers/${s.id}`" class="name-link">{{ s.name }}</router-link>
-            <span v-if="s.description" class="desc">{{ s.description }}</span>
-          </td>
-          <td><BaseBadge variant="info">{{ s.transport }}</BaseBadge></td>
-          <td>
-            <BaseBadge :variant="statusVariant(s.status)">
-              {{ $t('mcp.servers.statuses.' + s.status) }}
-            </BaseBadge>
-          </td>
-          <td>{{ s.toolCount }}</td>
-          <td class="actions-cell">
-            <BaseButton variant="ghost" size="sm" @click="$router.push(`/mcp/servers/${s.id}/edit`)">
-              {{ $t('provider.edit') }}
-            </BaseButton>
-            <BaseButton variant="danger" size="sm" @click="deleteServer(s.id)">
-              {{ $t('provider.delete') }}
-            </BaseButton>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <BaseTable
+      :columns="columns"
+      :data="servers"
+      :loading="loading"
+      :empty-text="$t('mcp.servers.empty')"
+      :row-click="(s: any) => $router.push(`/mcp/servers/${s.id}`)"
+      card
+    >
+      <template #cell-name="{ row }">
+        <router-link :to="`/mcp/servers/${row.id}`" class="name-link" @click.stop>{{ row.name }}</router-link>
+        <span v-if="row.description" class="desc">{{ row.description }}</span>
+      </template>
+      <template #cell-transport="{ row }">
+        <BaseBadge variant="info">{{ row.transport }}</BaseBadge>
+      </template>
+      <template #cell-status="{ row }">
+        <BaseBadge :variant="statusVariant(row.status)">
+          {{ $t('mcp.servers.statuses.' + row.status) }}
+        </BaseBadge>
+      </template>
+      <template #cell-toolCount="{ row }">
+        {{ row.toolCount }}
+      </template>
+      <template #cell-actions="{ row }">
+        <BaseButton variant="ghost" size="sm" @click.stop="$router.push(`/mcp/servers/${row.id}/edit`)">
+          {{ $t('provider.edit') }}
+        </BaseButton>
+        <BaseButton variant="danger" size="sm" @click.stop="deleteServer(row.id)">
+          {{ $t('provider.delete') }}
+        </BaseButton>
+      </template>
+    </BaseTable>
   </div>
 </template>
 
@@ -61,8 +53,8 @@ import { useConfirm } from '../../composables/useConfirm'
 import BasePageHeader from '../../components/ui/BasePageHeader.vue'
 import BaseButton from '../../components/ui/BaseButton.vue'
 import BaseBadge from '../../components/ui/BaseBadge.vue'
-import BaseSpinner from '../../components/ui/BaseSpinner.vue'
-import BaseEmpty from '../../components/ui/BaseEmpty.vue'
+import BaseTable from '../../components/ui/BaseTable.vue'
+import type { TableColumn } from '../../components/ui/BaseTable.vue'
 
 const { t } = useI18n()
 const { show } = useToast()
@@ -70,6 +62,14 @@ const { confirm: confirmDialog } = useConfirm()
 
 const loading = ref(true)
 const servers = ref<McpServer[]>([])
+
+const columns: TableColumn[] = [
+  { key: 'name', label: t('mcp.servers.name') },
+  { key: 'transport', label: t('mcp.servers.transport') },
+  { key: 'status', label: t('mcp.servers.status') },
+  { key: 'toolCount', label: t('mcp.servers.toolCount') },
+  { key: 'actions', label: t('mcp.servers.actions') },
+]
 
 onMounted(async () => {
   try {
@@ -113,30 +113,5 @@ async function deleteServer(id: string) {
   font-size: 0.786rem;
   color: var(--color-foreground-secondary);
   margin-top: 2px;
-}
-.design-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-.design-table th {
-  font-size: 0.857rem;
-  font-weight: 600;
-  color: var(--color-foreground-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border-bottom: 2px solid var(--color-border);
-  padding: 10px 12px;
-  text-align: left;
-}
-.design-table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--color-border);
-}
-.design-table tr:hover td {
-  background: var(--color-bg-muted);
-}
-.actions-cell {
-  display: flex;
-  gap: 6px;
 }
 </style>

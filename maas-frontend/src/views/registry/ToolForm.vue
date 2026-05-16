@@ -34,9 +34,6 @@
           <BaseButton type="submit" variant="primary" :loading="saving" :disabled="saving">
             {{ saving ? $t('common.loading') : $t('common.save') }}
           </BaseButton>
-          <BaseButton variant="secondary" @click="router.push('/tools')">
-            {{ $t('common.cancel') }}
-          </BaseButton>
         </div>
       </form>
     </BaseCard>

@@ -23,19 +23,19 @@ withDefaults(defineProps<{
 }
 .base-badge--success {
   background: var(--color-success-light);
-  color: #065f46;
+  color: var(--color-success-dark);
 }
 .base-badge--danger {
   background: var(--color-danger-light);
-  color: #991b1b;
+  color: var(--color-danger-dark);
 }
 .base-badge--warning {
   background: var(--color-warning-light);
-  color: #92400e;
+  color: var(--color-warning-dark);
 }
 .base-badge--info {
   background: var(--color-info-light);
-  color: #3730a3;
+  color: var(--color-info-dark);
 }
 .base-badge--neutral {
   background: var(--color-bg-muted);
@@ -43,6 +43,6 @@ withDefaults(defineProps<{
 }
 .base-badge--primary {
   background: var(--color-primary-light);
-  color: #3730a3;
+  color: var(--color-info-dark);
 }
 </style>

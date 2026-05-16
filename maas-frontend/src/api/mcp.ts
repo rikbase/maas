@@ -30,6 +30,17 @@ export interface McpTool {
   updatedAt: string
 }
 
+export interface McpToolDefinition {
+  name: string
+  description: string | null
+  inputSchema: Record<string, any> | null
+}
+
+export interface McpToolCallResult {
+  content: any
+  isError: boolean
+}
+
 export const mcpServerApi = {
   list: () => client.get<any, ApiResponse<McpServer[]>>('/mcp/servers'),
   get: (id: string) => client.get<any, ApiResponse<McpServer>>(`/mcp/servers/${id}`),
@@ -39,4 +50,11 @@ export const mcpServerApi = {
   listTools: (id: string) => client.get<any, ApiResponse<McpTool[]>>(`/mcp/servers/${id}/tools`),
   deleteTool: (id: string, toolId: string) =>
     client.delete<any, ApiResponse<null>>(`/mcp/servers/${id}/tools/${toolId}`),
+  // Runtime methods
+  listRuntimeTools: (id: string) =>
+    client.get<any, ApiResponse<McpToolDefinition[]>>(`/mcp/servers/${id}/runtime-tools`),
+  executeTool: (serverId: string, toolName: string, args: Record<string, any>) =>
+    client.post<any, ApiResponse<McpToolCallResult>>('/mcp/execute', { serverId, toolName, arguments: args }),
+  disconnect: (id: string) =>
+    client.post<any, ApiResponse<null>>(`/mcp/servers/${id}/disconnect`),
 }

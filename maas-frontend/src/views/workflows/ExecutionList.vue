@@ -15,9 +15,9 @@
           {{ $t('workflow.runStatuses.' + s) }}
         </option>
       </select>
-      <input type="date" v-model="dateFrom" class="filter-date" @change="fetch" />
+      <input type="date" v-model="dateFrom" class="filter-input" @change="fetch" />
       <span class="filter-sep">&mdash;</span>
-      <input type="date" v-model="dateTo" class="filter-date" @change="fetch" />
+      <input type="date" v-model="dateTo" class="filter-input" @change="fetch" />
       <BaseButton size="sm" variant="secondary" @click="fetch">{{ $t('workflow.refresh') }}</BaseButton>
       <label class="live-toggle">
         <input type="checkbox" v-model="liveEnabled" />
@@ -26,36 +26,36 @@
       </label>
     </div>
 
-    <BaseSpinner v-if="loading" class="spinner" />
+    <template v-if="page">
+      <BaseTable
+        :columns="columns"
+        :data="page.content"
+        :loading="loading"
+        :empty-text="$t('workflow.noExecutions')"
+        card
+        :row-click="go"
+      >
+        <template #cell-id="{ row }">
+          <span class="text-mono">{{ row.id.slice(0, 8) }}...</span>
+        </template>
+        <template #cell-workflowName="{ row }">
+          {{ row.workflowName || '-' }}
+        </template>
+        <template #cell-status="{ row }">
+          <BaseBadge :variant="runStatusVariant(row.status)">{{ $t('workflow.runStatuses.' + row.status) }}</BaseBadge>
+        </template>
+        <template #cell-triggerType="{ row }">
+          {{ row.triggerType || '-' }}
+        </template>
+        <template #cell-startedAt="{ row }">
+          <span class="muted-text">{{ row.startedAt ? formatTime(row.startedAt) : '-' }}</span>
+        </template>
+        <template #cell-finishedAt="{ row }">
+          <span class="muted-text">{{ row.finishedAt ? formatTime(row.finishedAt) : '-' }}</span>
+        </template>
+      </BaseTable>
 
-    <template v-else-if="page">
-      <table v-if="page.content.length > 0" class="data-table">
-        <thead>
-          <tr>
-            <th>{{ $t('workflow.id') }}</th>
-            <th v-if="isGlobal">{{ $t('workflow.workflowName') }}</th>
-            <th>{{ $t('workflow.status') }}</th>
-            <th>{{ $t('workflow.triggerType') }}</th>
-            <th>{{ $t('workflow.startedAt') }}</th>
-            <th>{{ $t('workflow.finishedAt') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="e in page.content" :key="e.id" class="clickable-row" @click="go(e.id)">
-            <td class="text-mono">{{ e.id.slice(0, 8) }}...</td>
-            <td v-if="isGlobal">{{ e.workflowName || '-' }}</td>
-            <td>
-              <BaseBadge :variant="runStatusVariant(e.status)">{{ $t('workflow.runStatuses.' + e.status) }}</BaseBadge>
-            </td>
-            <td>{{ e.triggerType || '-' }}</td>
-            <td class="muted-text">{{ e.startedAt ? formatTime(e.startedAt) : '-' }}</td>
-            <td class="muted-text">{{ e.finishedAt ? formatTime(e.finishedAt) : '-' }}</td>
-          </tr>
-        </tbody>
-      </table>
-      <BaseEmpty v-else :text="$t('workflow.noExecutions')" />
-
-      <div class="pagination-bar">
+      <div v-if="page.content.length > 0" class="pagination-bar">
         <select v-model.number="pageSize" class="page-size-select" @change="onPageSizeChange">
           <option :value="10">10</option>
           <option :value="20">20</option>
@@ -77,8 +77,8 @@ import BasePageHeader from '../../components/ui/BasePageHeader.vue'
 import BaseButton from '../../components/ui/BaseButton.vue'
 import BaseBadge from '../../components/ui/BaseBadge.vue'
 import BasePagination from '../../components/ui/BasePagination.vue'
-import BaseSpinner from '../../components/ui/BaseSpinner.vue'
-import BaseEmpty from '../../components/ui/BaseEmpty.vue'
+import BaseTable from '../../components/ui/BaseTable.vue'
+import type { TableColumn } from '../../components/ui/BaseTable.vue'
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { workflowApi, executionApi } from '../../api/workflows'
@@ -104,6 +104,22 @@ const dateFrom = ref('')
 const dateTo = ref('')
 const pageSize = ref(10)
 const liveEnabled = ref(false)
+
+const columns = computed<TableColumn[]>(() => {
+  const cols: TableColumn[] = [
+    { key: 'id', label: t('workflow.id') },
+  ]
+  if (isGlobal.value) {
+    cols.push({ key: 'workflowName', label: t('workflow.workflowName') })
+  }
+  cols.push(
+    { key: 'status', label: t('workflow.status') },
+    { key: 'triggerType', label: t('workflow.triggerType') },
+    { key: 'startedAt', label: t('workflow.startedAt') },
+    { key: 'finishedAt', label: t('workflow.finishedAt') },
+  )
+  return cols
+})
 
 let timer: ReturnType<typeof setInterval> | null = null
 
@@ -163,8 +179,8 @@ function onPageSizeChange() {
   fetch()
 }
 
-function go(id: string) {
-  router.push(`/executions/${id}`)
+function go(row: any) {
+  router.push(`/executions/${row.id}`)
 }
 
 function formatTime(ts: string) {
@@ -207,11 +223,6 @@ watch(liveEnabled, (v) => {
 </script>
 
 <style scoped>
-.spinner {
-  display: flex;
-  justify-content: center;
-  padding: var(--space-8);
-}
 .filter-bar {
   display: flex;
   align-items: center;
@@ -219,7 +230,8 @@ watch(liveEnabled, (v) => {
   margin-bottom: var(--space-4);
   flex-wrap: wrap;
 }
-.filter-select {
+.filter-select,
+.filter-input {
   padding: 6px 10px;
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
@@ -227,20 +239,8 @@ watch(liveEnabled, (v) => {
   color: var(--color-foreground);
   background: var(--color-bg-card);
 }
-.filter-select:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-light);
-}
-.filter-date {
-  padding: 6px 10px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  font-size: 0.857rem;
-  color: var(--color-foreground);
-  background: var(--color-bg-card);
-}
-.filter-date:focus {
+.filter-select:focus,
+.filter-input:focus {
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--color-primary-light);
@@ -271,38 +271,6 @@ watch(liveEnabled, (v) => {
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
-}
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: var(--color-bg-card);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-}
-.data-table th {
-  text-transform: uppercase;
-  font-size: 0.857rem;
-  color: var(--color-foreground-secondary);
-  font-weight: 600;
-  text-align: left;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--color-border);
-}
-.data-table td {
-  padding: 10px 12px;
-  text-align: left;
-  border-bottom: 1px solid var(--color-border);
-  font-size: 0.875rem;
-  color: var(--color-foreground);
-}
-.data-table tbody tr:hover {
-  background: var(--color-bg-muted);
-}
-.data-table tbody tr:last-child td {
-  border-bottom: none;
-}
-.clickable-row {
-  cursor: pointer;
 }
 .muted-text {
   color: var(--color-foreground-secondary);

@@ -1,5 +1,6 @@
 package com.maas.registry.service;
 
+import com.maas.common.exception.BusinessException;
 import com.maas.registry.dto.ToolCreateRequest;
 import com.maas.registry.dto.ToolUpdateRequest;
 import com.maas.registry.dto.ToolVO;
@@ -31,7 +32,7 @@ public class ToolDefinitionService {
     public ToolVO findById(UUID id) {
         return repository.findById(id)
             .map(ToolVO::from)
-            .orElseThrow(() -> new RuntimeException("Tool not found: " + id));
+            .orElseThrow(() -> new BusinessException(404, "Tool not found: " + id));
     }
 
     @Transactional(readOnly = true)
@@ -57,7 +58,7 @@ public class ToolDefinitionService {
 
     public ToolVO update(UUID id, ToolUpdateRequest req) {
         ToolDefinition t = repository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Tool not found: " + id));
+            .orElseThrow(() -> new BusinessException(404, "Tool not found: " + id));
         if (req.name() != null) t.setName(req.name());
         if (req.description() != null) t.setDescription(req.description());
         if (req.source() != null) t.setSource(req.source());
@@ -69,7 +70,7 @@ public class ToolDefinitionService {
 
     public ToolVO toggleEnabled(UUID id) {
         ToolDefinition t = repository.findById(id)
-            .orElseThrow(() -> new RuntimeException("Tool not found: " + id));
+            .orElseThrow(() -> new BusinessException(404, "Tool not found: " + id));
         t.setEnabled(!t.isEnabled());
         return ToolVO.from(repository.save(t));
     }

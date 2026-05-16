@@ -8,47 +8,40 @@
       </template>
     </BasePageHeader>
 
-    <BaseSpinner v-if="loading" class="spinner" />
-
-    <BaseEmpty v-else-if="workflows.length === 0" :text="$t('workflow.empty')" />
-
-    <table v-else class="data-table">
-      <thead>
-        <tr>
-          <th>{{ $t('workflow.name') }}</th>
-          <th>{{ $t('workflow.status') }}</th>
-          <th>{{ $t('workflow.version') }}</th>
-          <th>{{ $t('workflow.lastRun') }}</th>
-          <th>{{ $t('workflow.updatedAt') }}</th>
-          <th>{{ $t('workflow.actions') }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="w in workflows" :key="w.id">
-          <td>
-            <router-link :to="`/workflows/${w.id}`" class="data-table-link">{{ w.name }}</router-link>
-            <span v-if="w.description" class="data-table-desc">&mdash; {{ w.description }}</span>
-          </td>
-          <td>
-            <BaseBadge :variant="statusVariant(w.status)">{{ $t('workflow.statuses.' + w.status) }}</BaseBadge>
-          </td>
-          <td>{{ w.latestVersion ?? '-' }}</td>
-          <td>
-            <BaseBadge v-if="w.lastRunStatus" :variant="runStatusVariant(w.lastRunStatus)">
-              {{ $t('workflow.runStatuses.' + w.lastRunStatus) }}
-            </BaseBadge>
-            <span v-else class="muted-text">-</span>
-          </td>
-          <td class="muted-text">{{ formatTime(w.updatedAt) }}</td>
-          <td class="action-cell">
-            <BaseButton size="sm" variant="ghost" @click="router.push(`/workflows/${w.id}/edit`)">{{ $t('workflow.edit') }}</BaseButton>
-            <BaseButton v-if="w.status !== 'published'" size="sm" variant="ghost" @click="publishWorkflow(w.id)">{{ $t('workflow.publish') }}</BaseButton>
-            <BaseButton v-if="w.status === 'published'" size="sm" variant="ghost" @click="executeWorkflow(w.id)">{{ $t('workflow.execute') }}</BaseButton>
-            <BaseButton size="sm" variant="danger" @click="deleteWorkflow(w.id)">{{ $t('common.delete') }}</BaseButton>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <BaseTable
+      :columns="columns"
+      :data="workflows"
+      :loading="loading"
+      :empty-text="$t('workflow.empty')"
+      card
+      :row-click="(w: any) => router.push(`/workflows/${w.id}`)"
+    >
+      <template #cell-name="{ row }">
+        <router-link :to="`/workflows/${row.id}`" class="workflow-link">{{ row.name }}</router-link>
+        <span v-if="row.description" class="workflow-desc">&mdash; {{ row.description }}</span>
+      </template>
+      <template #cell-status="{ row }">
+        <BaseBadge :variant="statusVariant(row.status)">{{ $t('workflow.statuses.' + row.status) }}</BaseBadge>
+      </template>
+      <template #cell-version="{ row }">
+        {{ row.latestVersion ?? '-' }}
+      </template>
+      <template #cell-lastRun="{ row }">
+        <BaseBadge v-if="row.lastRunStatus" :variant="runStatusVariant(row.lastRunStatus)">
+          {{ $t('workflow.runStatuses.' + row.lastRunStatus) }}
+        </BaseBadge>
+        <span v-else class="muted-text">-</span>
+      </template>
+      <template #cell-updatedAt="{ row }">
+        <span class="muted-text">{{ formatTime(row.updatedAt) }}</span>
+      </template>
+      <template #cell-actions="{ row }">
+        <BaseButton size="sm" variant="ghost" @click.stop="router.push(`/workflows/${row.id}/edit`)">{{ $t('workflow.edit') }}</BaseButton>
+        <BaseButton v-if="row.status !== 'published'" size="sm" variant="ghost" @click.stop="publishWorkflow(row.id)">{{ $t('workflow.publish') }}</BaseButton>
+        <BaseButton v-if="row.status === 'published'" size="sm" variant="ghost" @click.stop="executeWorkflow(row.id)">{{ $t('workflow.execute') }}</BaseButton>
+        <BaseButton size="sm" variant="danger" @click.stop="deleteWorkflow(row.id)">{{ $t('common.delete') }}</BaseButton>
+      </template>
+    </BaseTable>
   </div>
 </template>
 
@@ -56,8 +49,8 @@
 import BasePageHeader from '../../components/ui/BasePageHeader.vue'
 import BaseButton from '../../components/ui/BaseButton.vue'
 import BaseBadge from '../../components/ui/BaseBadge.vue'
-import BaseSpinner from '../../components/ui/BaseSpinner.vue'
-import BaseEmpty from '../../components/ui/BaseEmpty.vue'
+import BaseTable from '../../components/ui/BaseTable.vue'
+import type { TableColumn } from '../../components/ui/BaseTable.vue'
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { workflowApi } from '../../api/workflows'
@@ -73,6 +66,15 @@ const { confirm: confirmDialog } = useConfirm()
 
 const loading = ref(true)
 const workflows = ref<Workflow[]>([])
+
+const columns: TableColumn[] = [
+  { key: 'name', label: t('workflow.name') },
+  { key: 'status', label: t('workflow.status') },
+  { key: 'version', label: t('workflow.version') },
+  { key: 'lastRun', label: t('workflow.lastRun') },
+  { key: 'updatedAt', label: t('workflow.updatedAt') },
+  { key: 'actions', label: t('workflow.actions') },
+]
 
 function statusVariant(status: string): 'success' | 'danger' | 'warning' | 'info' | 'neutral' {
   const map: Record<string, 'success' | 'danger' | 'warning' | 'info' | 'neutral'> = {
@@ -142,59 +144,20 @@ function formatTime(ts: string) {
 </script>
 
 <style scoped>
-.spinner {
-  display: flex;
-  justify-content: center;
-  padding: var(--space-8);
-}
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: var(--color-bg-card);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-}
-.data-table th {
-  text-transform: uppercase;
-  font-size: 0.857rem;
-  color: var(--color-foreground-secondary);
-  font-weight: 600;
-  text-align: left;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--color-border);
-}
-.data-table td {
-  padding: 10px 12px;
-  text-align: left;
-  border-bottom: 1px solid var(--color-border);
-  font-size: 0.875rem;
-  color: var(--color-foreground);
-}
-.data-table tbody tr:hover {
-  background: var(--color-bg-muted);
-}
-.data-table tbody tr:last-child td {
-  border-bottom: none;
-}
-.data-table-link {
+.workflow-link {
   color: var(--color-primary);
   text-decoration: none;
   font-weight: 500;
 }
-.data-table-link:hover {
+.workflow-link:hover {
   text-decoration: underline;
 }
-.data-table-desc {
+.workflow-desc {
   color: var(--color-foreground-secondary);
   font-size: 0.8rem;
 }
 .muted-text {
   color: var(--color-foreground-secondary);
   font-size: 0.8rem;
-}
-.action-cell {
-  display: flex;
-  gap: var(--space-1);
-  flex-wrap: wrap;
 }
 </style>

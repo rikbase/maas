@@ -2,11 +2,11 @@
   <div>
     <BasePageHeader :title="$t('security.events.title')">
       <template #actions>
-        <div v-if="stats" class="stats">
-          <div class="stat-card">{{ $t('security.events.total') }}: <strong>{{ stats.totalEvents }}</strong></div>
-          <div class="stat-card stat-blocked">{{ $t('security.events.blocked') }}: <strong>{{ stats.blockedCount }}</strong></div>
-          <div class="stat-card stat-flagged">{{ $t('security.events.flagged') }}: <strong>{{ stats.flaggedCount }}</strong></div>
-          <div class="stat-card stat-24h">{{ $t('security.events.last24h') }}: <strong>{{ stats.last24hEvents }}</strong></div>
+        <div v-if="stats" class="stats-bar">
+          <span class="stat-item">{{ $t('security.events.total') }}: <strong>{{ stats.totalEvents }}</strong></span>
+          <span class="stat-item stat-blocked">{{ $t('security.events.blocked') }}: <strong>{{ stats.blockedCount }}</strong></span>
+          <span class="stat-item stat-flagged">{{ $t('security.events.flagged') }}: <strong>{{ stats.flaggedCount }}</strong></span>
+          <span class="stat-item stat-24h">{{ $t('security.events.last24h') }}: <strong>{{ stats.last24hEvents }}</strong></span>
         </div>
       </template>
     </BasePageHeader>
@@ -26,40 +26,39 @@
       </select>
     </div>
 
-    <BaseSpinner v-if="loading" size="lg" />
-    <BaseEmpty v-else-if="events.length === 0" :text="$t('security.events.empty')" />
-    <table v-else class="design-table">
-      <thead>
-        <tr>
-          <th>{{ $t('security.events.time') }}</th>
-          <th>{{ $t('security.rules.type') }}</th>
-          <th>{{ $t('security.rules.severity') }}</th>
-          <th>{{ $t('security.events.action') }}</th>
-          <th>{{ $t('security.events.model') }}</th>
-          <th>{{ $t('security.events.direction') }}</th>
-          <th>{{ $t('security.events.summary') }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="e in events" :key="e.id">
-          <td class="time">{{ formatTime(e.createdAt) }}</td>
-          <td><BaseBadge variant="info">{{ $t('security.rules.detectorTypes.' + e.detectorType) }}</BaseBadge></td>
-          <td>
-            <BaseBadge :variant="severityVariant(e.severity)">
-              {{ $t('security.rules.severities.' + e.severity) }}
-            </BaseBadge>
-          </td>
-          <td>
-            <BaseBadge :variant="actionVariant(e.actionTaken)">
-              {{ $t('security.rules.actionsList.' + e.actionTaken) }}
-            </BaseBadge>
-          </td>
-          <td>{{ e.model || '-' }}</td>
-          <td>{{ e.direction }}</td>
-          <td class="summary-cell">{{ truncate(e.requestSummary, 60) }}</td>
-        </tr>
-      </tbody>
-    </table>
+    <BaseTable
+      :columns="columns"
+      :data="events"
+      :loading="loading"
+      :empty-text="$t('security.events.empty')"
+      card
+    >
+      <template #cell-time="{ row }">
+        <span class="time-cell">{{ formatTime(row.createdAt) }}</span>
+      </template>
+      <template #cell-type="{ row }">
+        <BaseBadge variant="info">{{ $t('security.rules.detectorTypes.' + row.detectorType) }}</BaseBadge>
+      </template>
+      <template #cell-severity="{ row }">
+        <BaseBadge :variant="severityVariant(row.severity)">
+          {{ $t('security.rules.severities.' + row.severity) }}
+        </BaseBadge>
+      </template>
+      <template #cell-action="{ row }">
+        <BaseBadge :variant="actionVariant(row.actionTaken)">
+          {{ $t('security.rules.actionsList.' + row.actionTaken) }}
+        </BaseBadge>
+      </template>
+      <template #cell-model="{ row }">
+        {{ row.model || '-' }}
+      </template>
+      <template #cell-direction="{ row }">
+        {{ row.direction }}
+      </template>
+      <template #cell-summary="{ row }">
+        <span class="summary-cell">{{ truncate(row.requestSummary, 60) }}</span>
+      </template>
+    </BaseTable>
 
     <div v-if="totalPages > 1" class="pagination-wrap">
       <BasePagination :page="page + 1" :page-size="20" :total="totalPages * 20" @update:page="p => { page = p - 1; loadEvents() }" />
@@ -73,8 +72,8 @@ import { eventApi } from '../../api/security'
 import type { SecurityEvent, SecurityStats } from '../../api/security'
 import BasePageHeader from '../../components/ui/BasePageHeader.vue'
 import BaseBadge from '../../components/ui/BaseBadge.vue'
-import BaseSpinner from '../../components/ui/BaseSpinner.vue'
-import BaseEmpty from '../../components/ui/BaseEmpty.vue'
+import BaseTable from '../../components/ui/BaseTable.vue'
+import type { TableColumn } from '../../components/ui/BaseTable.vue'
 import BasePagination from '../../components/ui/BasePagination.vue'
 
 const loading = ref(true)
@@ -83,6 +82,16 @@ const stats = ref<SecurityStats | null>(null)
 const page = ref(0)
 const totalPages = ref(1)
 const filter = reactive({ severity: '', detectorType: '' })
+
+const columns: TableColumn[] = [
+  { key: 'time', label: 'Time' },
+  { key: 'type', label: 'Type' },
+  { key: 'severity', label: 'Severity' },
+  { key: 'action', label: 'Action' },
+  { key: 'model', label: 'Model' },
+  { key: 'direction', label: 'Direction' },
+  { key: 'summary', label: 'Summary' },
+]
 
 onMounted(async () => {
   await Promise.all([loadEvents(), loadStats()])
@@ -137,12 +146,12 @@ function truncate(s: string | null, max: number) {
 </script>
 
 <style scoped>
-.stats {
+.stats-bar {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
 }
-.stat-card {
+.stat-item {
   background: var(--color-bg-card);
   padding: 8px 16px;
   border-radius: var(--radius-md);
@@ -150,18 +159,12 @@ function truncate(s: string | null, max: number) {
   border: 1px solid var(--color-border);
   white-space: nowrap;
 }
-.stat-card strong {
+.stat-item strong {
   font-weight: 600;
 }
-.stat-blocked strong {
-  color: var(--color-danger);
-}
-.stat-flagged strong {
-  color: var(--color-warning);
-}
-.stat-24h strong {
-  color: var(--color-primary);
-}
+.stat-blocked strong { color: var(--color-danger); }
+.stat-flagged strong { color: var(--color-warning); }
+.stat-24h strong { color: var(--color-primary); }
 .filters {
   display: flex;
   gap: 8px;
@@ -179,28 +182,7 @@ function truncate(s: string | null, max: number) {
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
   outline: none;
 }
-.design-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-.design-table th {
-  font-size: 0.857rem;
-  font-weight: 600;
-  color: var(--color-foreground-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border-bottom: 2px solid var(--color-border);
-  padding: 10px 12px;
-  text-align: left;
-}
-.design-table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--color-border);
-}
-.design-table tr:hover td {
-  background: var(--color-bg-muted);
-}
-.time {
+.time-cell {
   white-space: nowrap;
   font-size: 0.857rem;
   color: var(--color-foreground-secondary);
@@ -210,6 +192,7 @@ function truncate(s: string | null, max: number) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  display: inline-block;
 }
 .pagination-wrap {
   display: flex;

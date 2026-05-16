@@ -95,6 +95,31 @@ export interface ExecutionListParams {
   end?: string
 }
 
+// ---- Workflow Triggers ----
+
+export interface WorkflowTrigger {
+  id: string
+  workflowId: string
+  triggerType: 'cron' | 'webhook'
+  cronExpression: string | null
+  webhookSecret: string | null
+  status: string
+  lastFiredAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export const triggerApi = {
+  list: (workflowId: string) =>
+    client.get<any, ApiResponse<WorkflowTrigger[]>>(`/workflows/${workflowId}/triggers`),
+  create: (workflowId: string, data: { triggerType: string; cronExpression?: string; webhookSecret?: string }) =>
+    client.post<any, ApiResponse<WorkflowTrigger>>(`/workflows/${workflowId}/triggers`, data),
+  update: (workflowId: string, triggerId: string, data: { cronExpression?: string; webhookSecret?: string; status?: string }) =>
+    client.put<any, ApiResponse<WorkflowTrigger>>(`/workflows/${workflowId}/triggers/${triggerId}`, data),
+  delete: (workflowId: string, triggerId: string) =>
+    client.delete<any, ApiResponse<null>>(`/workflows/${workflowId}/triggers/${triggerId}`),
+}
+
 export const executionApi = {
   list: (params?: ExecutionListParams) => client.get<any, ApiResponse<ExecutionPage>>('/executions', { params }),
   get: (id: string) => client.get<any, ApiResponse<Execution>>(`/executions/${id}`),

@@ -8,56 +8,46 @@
       </template>
     </BasePageHeader>
 
-    <BaseSpinner v-if="loading" size="lg" />
-    <BaseEmpty
-      v-else-if="rules.length === 0"
-      :text="$t('security.rules.empty')"
-      :action-text="$t('security.rules.emptyHint')"
-    />
-    <table v-else class="design-table">
-      <thead>
-        <tr>
-          <th>{{ $t('security.rules.name') }}</th>
-          <th>{{ $t('security.rules.type') }}</th>
-          <th>{{ $t('security.rules.severity') }}</th>
-          <th>{{ $t('security.rules.action') }}</th>
-          <th>{{ $t('security.rules.status') }}</th>
-          <th>{{ $t('security.rules.actions') }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="r in rules" :key="r.id">
-          <td>{{ r.name }}</td>
-          <td>{{ $t('security.rules.detectorTypes.' + r.detectorType) }}</td>
-          <td>
-            <BaseBadge :variant="severityVariant(r.severity)">
-              {{ $t('security.rules.severities.' + r.severity) }}
-            </BaseBadge>
-          </td>
-          <td>
-            <BaseBadge :variant="actionVariant(r.action)">
-              {{ $t('security.rules.actionsList.' + r.action) }}
-            </BaseBadge>
-          </td>
-          <td>
-            <BaseBadge :variant="r.enabled ? 'success' : 'neutral'">
-              {{ $t('security.rules.statuses.' + (r.enabled ? 'active' : 'inactive')) }}
-            </BaseBadge>
-          </td>
-          <td class="actions-cell">
-            <BaseButton variant="ghost" size="sm" @click="$router.push(`/security/rules/${r.id}/edit`)">
-              {{ $t('security.rules.edit') }}
-            </BaseButton>
-            <BaseButton variant="secondary" size="sm" @click="toggleRule(r)">
-              {{ r.enabled ? $t('security.rules.disable') : $t('security.rules.enable') }}
-            </BaseButton>
-            <BaseButton variant="danger" size="sm" @click="deleteRule(r.id)">
-              {{ $t('provider.delete') }}
-            </BaseButton>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <BaseTable
+      :columns="columns"
+      :data="rules"
+      :loading="loading"
+      :empty-text="$t('security.rules.empty')"
+      card
+    >
+      <template #cell-name="{ row }">
+        <strong>{{ row.name }}</strong>
+      </template>
+      <template #cell-type="{ row }">
+        {{ $t('security.rules.detectorTypes.' + row.detectorType) }}
+      </template>
+      <template #cell-severity="{ row }">
+        <BaseBadge :variant="severityVariant(row.severity)">
+          {{ $t('security.rules.severities.' + row.severity) }}
+        </BaseBadge>
+      </template>
+      <template #cell-action="{ row }">
+        <BaseBadge :variant="actionVariant(row.action)">
+          {{ $t('security.rules.actionsList.' + row.action) }}
+        </BaseBadge>
+      </template>
+      <template #cell-status="{ row }">
+        <BaseBadge :variant="row.enabled ? 'success' : 'neutral'">
+          {{ $t('security.rules.statuses.' + (row.enabled ? 'active' : 'inactive')) }}
+        </BaseBadge>
+      </template>
+      <template #cell-actions="{ row }">
+        <BaseButton variant="ghost" size="sm" @click="$router.push(`/security/rules/${row.id}/edit`)">
+          {{ $t('security.rules.edit') }}
+        </BaseButton>
+        <BaseButton variant="secondary" size="sm" @click="toggleRule(row)">
+          {{ row.enabled ? $t('security.rules.disable') : $t('security.rules.enable') }}
+        </BaseButton>
+        <BaseButton variant="danger" size="sm" @click="deleteRule(row.id)">
+          {{ $t('provider.delete') }}
+        </BaseButton>
+      </template>
+    </BaseTable>
   </div>
 </template>
 
@@ -71,8 +61,8 @@ import { useConfirm } from '../../composables/useConfirm'
 import BasePageHeader from '../../components/ui/BasePageHeader.vue'
 import BaseButton from '../../components/ui/BaseButton.vue'
 import BaseBadge from '../../components/ui/BaseBadge.vue'
-import BaseSpinner from '../../components/ui/BaseSpinner.vue'
-import BaseEmpty from '../../components/ui/BaseEmpty.vue'
+import BaseTable from '../../components/ui/BaseTable.vue'
+import type { TableColumn } from '../../components/ui/BaseTable.vue'
 
 const { t } = useI18n()
 const { show } = useToast()
@@ -80,6 +70,15 @@ const { confirm: confirmDialog } = useConfirm()
 
 const loading = ref(true)
 const rules = ref<SecurityRule[]>([])
+
+const columns: TableColumn[] = [
+  { key: 'name', label: t('security.rules.name') },
+  { key: 'type', label: t('security.rules.type') },
+  { key: 'severity', label: t('security.rules.severity') },
+  { key: 'action', label: t('security.rules.action') },
+  { key: 'status', label: t('security.rules.status') },
+  { key: 'actions', label: t('security.rules.actions') },
+]
 
 onMounted(async () => {
   try {
@@ -123,31 +122,3 @@ async function deleteRule(id: string) {
   }
 }
 </script>
-
-<style scoped>
-.design-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-.design-table th {
-  font-size: 0.857rem;
-  font-weight: 600;
-  color: var(--color-foreground-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border-bottom: 2px solid var(--color-border);
-  padding: 10px 12px;
-  text-align: left;
-}
-.design-table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--color-border);
-}
-.design-table tr:hover td {
-  background: var(--color-bg-muted);
-}
-.actions-cell {
-  display: flex;
-  gap: 6px;
-}
-</style>

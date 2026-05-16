@@ -1,0 +1,122 @@
+/* === Dark Glass Theme for Main Content Area === */
+/* Applied via .dark-theme class on .main in Layout.vue */
+/* Double-class selectors beat Vue scoped style specificity (0,2,0) */
+
+/* ── CSS Variable Overrides ── */
+.dark-theme {
+  --color-bg-page: transparent;
+  --color-bg-card: rgba(255,255,255,0.06);
+  --color-bg-muted: rgba(255,255,255,0.04);
+  --color-foreground: rgba(255,255,255,0.9);
+  --color-foreground-secondary: rgba(255,255,255,0.6);
+  --color-border: rgba(255,255,255,0.08);
+  --color-muted: rgba(255,255,255,0.35);
+  --color-success-light: rgba(16,185,129,0.2);
+  --color-success-dark: #6ee7b7;
+  --color-danger-light: rgba(239,68,68,0.2);
+  --color-danger-dark: #fca5a5;
+  --color-warning-light: rgba(245,158,11,0.2);
+  --color-warning-dark: #fcd34d;
+  --color-info-light: rgba(99,102,241,0.2);
+  --color-info-dark: #a5b4fc;
+  --color-primary-light: rgba(99,102,241,0.2);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.25);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.35);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.45);
+  --shadow-xl: 0 12px 48px rgba(0,0,0,0.5);
+}
+
+/* ── Glass Card ── */
+.dark-theme .base-card.base-card {
+  background: rgba(255,255,255,0.06) !important;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3) !important;
+}
+.dark-theme .base-card.base-card:hover {
+  box-shadow: 0 12px 48px rgba(0,0,0,0.4) !important;
+}
+
+/* ── Tables ── */
+.dark-theme table th {
+  background: rgba(255,255,255,0.04) !important;
+  color: rgba(255,255,255,0.5) !important;
+}
+.dark-theme table td {
+  border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+  color: rgba(255,255,255,0.8) !important;
+}
+.dark-theme table tbody tr:hover {
+  background: rgba(255,255,255,0.04) !important;
+}
+.dark-theme table tbody tr {
+  border-bottom: none;
+}
+
+/* ── Form Controls ── */
+.dark-theme input:not([type="checkbox"]):not([type="radio"]),
+.dark-theme select,
+.dark-theme textarea {
+  background: rgba(255,255,255,0.06) !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+  color: rgba(255,255,255,0.9) !important;
+}
+.dark-theme input:focus:not([type="checkbox"]),
+.dark-theme select:focus,
+.dark-theme textarea:focus {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.2) !important;
+}
+.dark-theme input::placeholder,
+.dark-theme textarea::placeholder {
+  color: rgba(255,255,255,0.3) !important;
+}
+
+/* ── Buttons ── */
+.dark-theme .base-btn--secondary.base-btn--secondary {
+  background: rgba(255,255,255,0.08) !important;
+  border-color: rgba(255,255,255,0.12) !important;
+  color: var(--color-foreground) !important;
+}
+.dark-theme .base-btn--secondary.base-btn--secondary:hover:not(:disabled) {
+  background: rgba(255,255,255,0.12) !important;
+}
+.dark-theme .base-btn--ghost.base-btn--ghost {
+  color: var(--color-foreground-secondary) !important;
+}
+.dark-theme .base-btn--ghost.base-btn--ghost:hover:not(:disabled) {
+  background: rgba(255,255,255,0.08) !important;
+  color: var(--color-foreground) !important;
+}
+
+/* ── Page Header ── */
+.dark-theme .page-header__title.page-header__title {
+  color: var(--color-foreground) !important;
+}
+.dark-theme .page-header__desc.page-header__desc {
+  color: var(--color-foreground-secondary) !important;
+}
+
+/* ── Pagination (handle any page-specific pagination styles) ── */
+.dark-theme .pagination button {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: var(--color-foreground);
+}
+.dark-theme .pagination button:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+/* ── Code / Mono text ── */
+.dark-theme code,
+.dark-theme pre,
+.dark-theme [class*="mono"],
+.dark-theme [class*="code"] {
+  color: var(--color-foreground);
+}
+
+/* ── General text override for any missed elements ── */
+.dark-theme {
+  color: var(--color-foreground);
+}

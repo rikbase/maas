@@ -51,6 +51,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/login").permitAll()
                 .requestMatchers("/api/dify/*/sso").permitAll()
+                .requestMatchers("/api/webhook/**").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/oauth2/authorize").authenticated()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/oauth2/authorize").permitAll()
                 .requestMatchers("/api/oauth2/callback").permitAll()

@@ -8,39 +8,33 @@
       </template>
     </BasePageHeader>
 
-    <BaseSpinner v-if="loading" class="spinner" />
-
-    <BaseEmpty v-else-if="skills.length === 0" :text="$t('registry.skills.empty')" />
-
-    <table v-else class="data-table">
-      <thead>
-        <tr>
-          <th>{{ $t('registry.skills.name') }}</th>
-          <th>{{ $t('registry.skills.type') }}</th>
-          <th>{{ $t('registry.skills.version') }}</th>
-          <th>{{ $t('registry.skills.status') }}</th>
-          <th>{{ $t('registry.skills.actions') }}</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="s in skills" :key="s.id">
-          <td>
-            <router-link :to="`/skills/${s.id}`" class="data-table-link">{{ s.name }}</router-link>
-            <span v-if="s.description" class="data-table-desc">{{ s.description }}</span>
-          </td>
-          <td>{{ s.type || '-' }}</td>
-          <td>v{{ s.version }}</td>
-          <td>
-            <BaseBadge :variant="badgeVariant(s.status)">{{ $t('registry.skills.statuses.' + s.status) }}</BaseBadge>
-          </td>
-          <td>
-            <BaseButton size="sm" variant="ghost" @click="router.push(`/skills/${s.id}/edit`)">{{ $t('provider.edit') }}</BaseButton>
-            <BaseButton v-if="s.status !== 'published'" size="sm" variant="ghost" @click="publish(s)">{{ $t('registry.skills.publish') }}</BaseButton>
-            <BaseButton size="sm" variant="danger" @click="deleteSkill(s.id)">{{ $t('provider.delete') }}</BaseButton>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <BaseTable
+      :columns="columns"
+      :data="skills"
+      :loading="loading"
+      :empty-text="$t('registry.skills.empty')"
+      :row-click="(s: any) => router.push(`/skills/${s.id}`)"
+      card
+    >
+      <template #cell-name="{ row }">
+        <router-link :to="`/skills/${row.id}`" class="link" @click.stop>{{ row.name }}</router-link>
+        <span v-if="row.description" class="desc">{{ row.description }}</span>
+      </template>
+      <template #cell-type="{ row }">
+        {{ row.type || '-' }}
+      </template>
+      <template #cell-version="{ row }">
+        v{{ row.version }}
+      </template>
+      <template #cell-status="{ row }">
+        <BaseBadge :variant="badgeVariant(row.status)">{{ $t('registry.skills.statuses.' + row.status) }}</BaseBadge>
+      </template>
+      <template #cell-actions="{ row }">
+        <BaseButton size="sm" variant="ghost" @click.stop="router.push(`/skills/${row.id}/edit`)">{{ $t('provider.edit') }}</BaseButton>
+        <BaseButton v-if="row.status !== 'published'" size="sm" variant="ghost" @click.stop="publish(row)">{{ $t('registry.skills.publish') }}</BaseButton>
+        <BaseButton size="sm" variant="danger" @click.stop="deleteSkill(row.id)">{{ $t('provider.delete') }}</BaseButton>
+      </template>
+    </BaseTable>
   </div>
 </template>
 
@@ -48,8 +42,8 @@
 import BasePageHeader from '../../components/ui/BasePageHeader.vue'
 import BaseButton from '../../components/ui/BaseButton.vue'
 import BaseBadge from '../../components/ui/BaseBadge.vue'
-import BaseSpinner from '../../components/ui/BaseSpinner.vue'
-import BaseEmpty from '../../components/ui/BaseEmpty.vue'
+import BaseTable from '../../components/ui/BaseTable.vue'
+import type { TableColumn } from '../../components/ui/BaseTable.vue'
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { skillApi } from '../../api/registry'
@@ -65,6 +59,14 @@ const { confirm: confirmDialog } = useConfirm()
 
 const loading = ref(true)
 const skills = ref<Skill[]>([])
+
+const columns: TableColumn[] = [
+  { key: 'name', label: t('registry.skills.name') },
+  { key: 'type', label: t('registry.skills.type') },
+  { key: 'version', label: t('registry.skills.version') },
+  { key: 'status', label: t('registry.skills.status') },
+  { key: 'actions', label: t('registry.skills.actions') },
+]
 
 function badgeVariant(status: string): 'success' | 'danger' | 'warning' | 'info' | 'neutral' {
   const map: Record<string, 'success' | 'danger' | 'warning' | 'info' | 'neutral'> = {
@@ -110,49 +112,15 @@ async function deleteSkill(id: string) {
 </script>
 
 <style scoped>
-.spinner {
-  display: flex;
-  justify-content: center;
-  padding: var(--space-8);
-}
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: var(--color-bg-card);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-}
-.data-table th {
-  text-transform: uppercase;
-  font-size: 0.857rem;
-  color: var(--color-foreground-secondary);
-  font-weight: 600;
-  text-align: left;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--color-border);
-}
-.data-table td {
-  padding: 10px 12px;
-  text-align: left;
-  border-bottom: 1px solid var(--color-border);
-  font-size: 0.875rem;
-  color: var(--color-foreground);
-}
-.data-table tbody tr:hover {
-  background: var(--color-bg-muted);
-}
-.data-table tbody tr:last-child td {
-  border-bottom: none;
-}
-.data-table-link {
+.link {
   color: var(--color-primary);
   text-decoration: none;
   font-weight: 500;
 }
-.data-table-link:hover {
+.link:hover {
   text-decoration: underline;
 }
-.data-table-desc {
+.desc {
   display: block;
   font-size: 0.8rem;
   color: var(--color-foreground-secondary);

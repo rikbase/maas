@@ -43,9 +43,9 @@ function onDragStart(event: DragEvent, step: { type: string }) {
 .palette-item:hover { opacity: 0.85; }
 .palette-item:active { cursor: grabbing; }
 .palette-icon { font-weight: bold; font-size: 11px; background: rgba(0,0,0,0.1); padding: 2px 6px; border-radius: 3px; width: 22px; text-align: center; }
-.palette-ai_call { background: #e3f2fd; color: var(--color-primary-hover); border: 1px solid #bbdefb; }
-.palette-tool { background: #f3e5f5; color: #7b1fa2; border: 1px solid #e1bee7; }
-.palette-skill { background: #e0f2f1; color: #00796b; border: 1px solid #b2dfdb; }
-.palette-condition { background: #fff3e0; color: #e65100; border: 1px solid #ffe0b2; }
-.palette-loop { background: #e8f5e9; color: var(--color-success); border: 1px solid #c8e6c9; }
+.palette-ai_call { background: rgba(33,150,243,0.2); color: #90caf9; border: 1px solid rgba(33,150,243,0.3); }
+.palette-tool { background: rgba(156,39,176,0.2); color: #ce93d8; border: 1px solid rgba(156,39,176,0.3); }
+.palette-skill { background: rgba(0,150,136,0.2); color: #80cbc4; border: 1px solid rgba(0,150,136,0.3); }
+.palette-condition { background: rgba(255,152,0,0.2); color: #ffcc80; border: 1px solid rgba(255,152,0,0.3); }
+.palette-loop { background: rgba(76,175,80,0.2); color: #a5d6a7; border: 1px solid rgba(76,175,80,0.3); }
 </style>
